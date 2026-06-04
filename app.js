@@ -3,12 +3,9 @@ const image = (id, w = 240, h = 240) =>
 
 const homeItems = [
   { id: "items", title: "Items", subtitle: "Inventory list", icon: "package-open" },
-  { id: "checklist", title: "Checklist", subtitle: "Daily material checks", icon: "list-checks" },
   { id: "warehouse", title: "Warehouse History", subtitle: "IN / OUT movement log", icon: "warehouse" },
-  { id: "ipad", title: "Ipad", subtitle: "Device view", icon: "tablet-smartphone" },
   { id: "people", title: "People", subtitle: "Staff and operators", icon: "users" },
   { id: "setup", title: "Setup Work", subtitle: "Workflow settings", icon: "settings-2" },
-  { id: "cashflow", title: "Cash-Flow", subtitle: "Payment tracking", icon: "badge-dollar-sign" },
 ];
 
 const items = [
@@ -28,15 +25,6 @@ const items = [
   { name: "Lime", price: 65, unit: "/CARTON-ADD BARCODE", barcode: "01175022650416181001911837", img: image("photo-1566733971017-d3dfb3d4a862") },
   { name: "Mango", price: 16, unit: "/PCS-ADD BARCODE", barcode: "01175022650416181001911838", img: image("photo-1553279768-865429fa0078") },
   { name: "Mint", price: 23, unit: "/CARTON-ADD BARCODE", barcode: "01175022650416181001911839", img: image("photo-1628556270448-4d4e4148e1b1") },
-];
-
-const checklist = [
-  { name: "Clorox", unit: "LITER", img: image("photo-1585421514284-efb74c2b69ba") },
-  { name: "Caramel Sauce", unit: "GRAM", img: image("photo-1615485290382-441e4d049cb5") },
-  { name: "Creme Caramel powder", unit: "GRAM", img: image("photo-1622483767028-3f66f32aef97") },
-  { name: "Rubbermaid 2-Piece Pitcher", unit: "PCS", img: image("photo-1610701596007-11502861dcfa") },
-  { name: "Silicone Spatula 3-Piece Set", unit: "PACK", img: image("photo-1556911220-bff31c812dba") },
-  { name: "Nutella Pipping Bag", unit: "PCS", img: image("photo-1606313564200-e75d5e30476c") },
 ];
 
 const stockLog = [
@@ -119,30 +107,6 @@ function renderProducts() {
     )
     .join("")
     : `<div class="empty-state"><i data-lucide="search-x"></i><span>No items found</span></div>`;
-}
-
-function renderChecklist() {
-  const visibleChecklist = checklist.filter((item) => {
-    const target = `${item.name} ${item.unit}`.toLowerCase();
-    return target.includes(searchQuery);
-  });
-
-  qs("#checklistList").innerHTML = visibleChecklist.length
-    ? visibleChecklist
-    .map(
-      (item) => `
-        <div class="product-row">
-          <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" />
-          <span class="product-main">
-            <span class="product-name">${item.name}-$</span>
-            <span class="product-unit">${item.unit}</span>
-          </span>
-          ${rowActions("check")}
-        </div>
-      `,
-    )
-    .join("")
-    : `<div class="empty-state"><i data-lucide="search-x"></i><span>No checklist items found</span></div>`;
 }
 
 function renderDetail() {
@@ -232,12 +196,11 @@ function setView(viewName) {
   qsa(".view").forEach((view) => view.classList.remove("active"));
   qsa(".rail-button").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
   qs(`#${viewName}View`)?.classList.add("active");
-  const label = viewName === "items" ? "ITEMS" : viewName === "checklist" ? "Checklist" : "ITEMS";
+  const label = viewName === "items" ? "ITEMS" : viewName;
   qs("#globalSearch").placeholder = `Search ${label}`;
   searchQuery = "";
   qs("#globalSearch").value = "";
   renderProducts();
-  renderChecklist();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -292,7 +255,6 @@ function bindEvents() {
   qs("#globalSearch").addEventListener("input", (event) => {
     searchQuery = event.target.value.trim().toLowerCase();
     renderProducts();
-    renderChecklist();
     refreshIcons();
   });
 }
@@ -306,7 +268,6 @@ function refreshIcons() {
 document.body.dataset.view = "home";
 renderHome();
 renderProducts();
-renderChecklist();
 renderDetail();
 renderHistory("#warehouseIn", warehouseIn, "in");
 renderHistory("#warehouseOut", warehouseOut, "out");

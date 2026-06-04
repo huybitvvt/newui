@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#ffffff" />
     <title>Mississauga Inventory UI</title>
     <link rel="preconnect" href="https://images.unsplash.com" />
-    <link rel="stylesheet" href="styles.css?v=wider-rail-a8a45eb" />
+    <link rel="stylesheet" href="styles.css?v=supabase-clean-a8a45eb" />
   </head>
   <body>
     <div class="app-shell">
@@ -35,23 +35,14 @@
         <button class="rail-button" type="button" data-view="items" aria-label="Items">
           <i data-lucide="package-open"></i>
         </button>
-        <button class="rail-button" type="button" data-view="checklist" aria-label="Checklist">
-          <i data-lucide="list-checks"></i>
-        </button>
         <button class="rail-button" type="button" data-view="warehouse" aria-label="Warehouse History">
           <i data-lucide="warehouse"></i>
-        </button>
-        <button class="rail-button" type="button" data-view="ipad" aria-label="Ipad">
-          <i data-lucide="tablet-smartphone"></i>
         </button>
         <button class="rail-button" type="button" data-view="people" aria-label="People">
           <i data-lucide="users"></i>
         </button>
         <button class="rail-button" type="button" data-view="setup" aria-label="Setup Work">
           <i data-lucide="settings-2"></i>
-        </button>
-        <button class="rail-button" type="button" data-view="cashflow" aria-label="Cash-Flow">
-          <i data-lucide="badge-dollar-sign"></i>
         </button>
       </aside>
 
@@ -104,38 +95,6 @@
           </div>
         </section>
 
-        <section class="view" id="checklistView" aria-labelledby="checklistTitle">
-          <div class="page-head">
-            <div>
-              <div class="breadcrumbs">
-                <button type="button" data-view="home">Home</button>
-                <i data-lucide="chevron-right"></i>
-                <span>Checklist</span>
-              </div>
-              <h1 id="checklistTitle">Checklist</h1>
-            </div>
-            <div class="toolbar">
-              <button class="primary-button" type="button">
-                <i data-lucide="plus"></i>
-                <span>Add</span>
-              </button>
-              <button class="icon-button" type="button" aria-label="Filter">
-                <i data-lucide="list-filter"></i>
-              </button>
-              <button class="icon-button" type="button" aria-label="Select">
-                <i data-lucide="square-check"></i>
-              </button>
-            </div>
-          </div>
-          <section class="list-panel full" aria-label="Checklist list">
-            <div class="group-title">
-              <strong>JT-Materials</strong>
-              <span class="count">28</span>
-            </div>
-            <div class="product-list checklist" id="checklistList"></div>
-          </section>
-        </section>
-
         <section class="view" id="warehouseView" aria-labelledby="warehouseTitle">
           <div class="page-head">
             <div>
@@ -177,12 +136,6 @@
           </div>
         </section>
 
-        <section class="view placeholder-view" id="ipadView">
-          <div class="placeholder-card">
-            <i data-lucide="tablet-smartphone"></i>
-            <h1>Ipad</h1>
-          </div>
-        </section>
         <section class="view placeholder-view" id="peopleView">
           <div class="placeholder-card">
             <i data-lucide="users"></i>
@@ -195,16 +148,10 @@
             <h1>Setup Work</h1>
           </div>
         </section>
-        <section class="view placeholder-view" id="cashflowView">
-          <div class="placeholder-card">
-            <i data-lucide="badge-dollar-sign"></i>
-            <h1>Cash-Flow</h1>
-          </div>
-        </section>
       </main>
     </div>
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    <script src="app.js?v=wider-rail-a8a45eb"></script>
+    <script src="app.js?v=supabase-clean-a8a45eb"></script>
   </body>
 </html>
