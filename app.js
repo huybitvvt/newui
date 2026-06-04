@@ -88,7 +88,7 @@ function rowActions() {
   return `
     <div class="row-actions">
       <span class="qty">0</span>
-      <button class="action-mini delete" type="button" aria-label="Xóa"><i data-lucide="trash-2"></i></button>
+      <button class="action-mini plus" type="button" aria-label="Cộng"><i data-lucide="plus"></i></button>
       <button class="action-mini minus" type="button" aria-label="Trừ"><i data-lucide="minus"></i></button>
       <button class="action-mini confirm" type="button" aria-label="Xác nhận"><i data-lucide="check"></i></button>
     </div>
