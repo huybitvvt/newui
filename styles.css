@@ -2303,3 +2303,252 @@ i[data-lucide] {
     height: 37px;
   }
 }
+
+/* Real-phone density pass for Safari/Zalo webviews. */
+@media (max-width: 560px) {
+  body[data-view="items"] .app-shell,
+  body[data-view="warehouse"] .app-shell,
+  body[data-view="people"] .app-shell,
+  body[data-view="setup"] .app-shell {
+    padding-top: 84px;
+  }
+
+  body[data-view="items"] .topbar,
+  body[data-view="warehouse"] .topbar,
+  body[data-view="people"] .topbar,
+  body[data-view="setup"] .topbar {
+    min-height: 84px;
+    grid-template-rows: 32px 34px;
+    gap: 6px;
+    padding: 6px 9px 8px;
+  }
+
+  body[data-view="items"] .menu-toggle,
+  body[data-view="warehouse"] .menu-toggle,
+  body[data-view="people"] .menu-toggle,
+  body[data-view="setup"] .menu-toggle,
+  body[data-view="items"] .avatar,
+  body[data-view="warehouse"] .avatar,
+  body[data-view="people"] .avatar,
+  body[data-view="setup"] .avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  body[data-view="items"] .brand-mark,
+  body[data-view="warehouse"] .brand-mark,
+  body[data-view="people"] .brand-mark,
+  body[data-view="setup"] .brand-mark {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  body[data-view="items"] .brand-name,
+  body[data-view="warehouse"] .brand-name,
+  body[data-view="people"] .brand-name,
+  body[data-view="setup"] .brand-name {
+    font-size: 14px;
+  }
+
+  body[data-view="items"] .search-wrap,
+  body[data-view="warehouse"] .search-wrap,
+  body[data-view="people"] .search-wrap,
+  body[data-view="setup"] .search-wrap {
+    height: 34px;
+    min-height: 34px;
+    padding: 0 10px;
+  }
+
+  body[data-view="items"] .search-wrap i,
+  body[data-view="warehouse"] .search-wrap i,
+  body[data-view="people"] .search-wrap i,
+  body[data-view="setup"] .search-wrap i {
+    width: 18px;
+    height: 18px;
+  }
+
+  body[data-view="items"] .search-wrap input,
+  body[data-view="warehouse"] .search-wrap input,
+  body[data-view="people"] .search-wrap input,
+  body[data-view="setup"] .search-wrap input {
+    font-size: 12px;
+  }
+
+  body[data-view="items"] .rail,
+  body[data-view="warehouse"] .rail,
+  body[data-view="people"] .rail,
+  body[data-view="setup"] .rail {
+    top: 84px;
+    width: 38px;
+    padding: 6px 3px;
+  }
+
+  body[data-view="items"] .rail-button,
+  body[data-view="warehouse"] .rail-button,
+  body[data-view="people"] .rail-button,
+  body[data-view="setup"] .rail-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  body[data-view="items"] .rail-button i,
+  body[data-view="warehouse"] .rail-button i,
+  body[data-view="people"] .rail-button i,
+  body[data-view="setup"] .rail-button i {
+    width: 20px;
+    height: 20px;
+  }
+
+  body[data-view="items"] .content,
+  body[data-view="warehouse"] .content,
+  body[data-view="people"] .content,
+  body[data-view="setup"] .content {
+    width: calc(100vw - 38px);
+    margin-left: 38px;
+  }
+
+  body[data-view="items"] .view,
+  body[data-view="warehouse"] .view,
+  body[data-view="people"] .view,
+  body[data-view="setup"] .view {
+    min-height: calc(100vh - 84px);
+  }
+
+  .page-head {
+    top: 84px;
+    min-height: 62px;
+    padding: 0 8px 7px;
+  }
+
+  .page-head .breadcrumbs {
+    min-height: 27px;
+    gap: 5px;
+    font-size: 12px;
+  }
+
+  .page-head .breadcrumbs i {
+    width: 15px;
+    height: 15px;
+  }
+
+  .page-head h1 {
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  .page-head .primary-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .split-layout {
+    padding: 7px 6px;
+  }
+
+  .group-title {
+    height: 38px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+
+  .group-title .count {
+    min-width: 22px;
+    min-height: 18px;
+    font-size: 11px;
+  }
+
+  .product-row {
+    grid-template-columns: 44px minmax(0, 1fr) 94px;
+    gap: 8px;
+    min-height: 64px;
+    padding: 7px 6px;
+  }
+
+  .thumb {
+    width: 42px;
+    height: 42px;
+    border-radius: 7px;
+  }
+
+  .product-name {
+    font-size: 13px;
+    line-height: 1.12;
+  }
+
+  .product-unit {
+    margin-top: 3px;
+    font-size: 11px;
+    line-height: 1.18;
+  }
+
+  .row-actions {
+    grid-template-columns: repeat(3, 28px);
+    gap: 4px;
+  }
+
+  .qty {
+    margin-bottom: 0;
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .action-mini {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+  }
+
+  .action-mini span {
+    font-size: 19px;
+  }
+
+  .detail-panel {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-view="items"] .rail,
+  body[data-view="warehouse"] .rail,
+  body[data-view="people"] .rail,
+  body[data-view="setup"] .rail {
+    width: 36px;
+    padding-right: 2px;
+    padding-left: 2px;
+  }
+
+  body[data-view="items"] .rail-button,
+  body[data-view="warehouse"] .rail-button,
+  body[data-view="people"] .rail-button,
+  body[data-view="setup"] .rail-button {
+    width: 32px;
+  }
+
+  body[data-view="items"] .content,
+  body[data-view="warehouse"] .content,
+  body[data-view="people"] .content,
+  body[data-view="setup"] .content {
+    width: calc(100vw - 36px);
+    margin-left: 36px;
+  }
+
+  .product-row {
+    grid-template-columns: 42px minmax(0, 1fr) 88px;
+    gap: 7px;
+  }
+
+  .row-actions {
+    grid-template-columns: repeat(3, 26px);
+    gap: 3px;
+  }
+
+  .action-mini {
+    width: 26px;
+    height: 26px;
+  }
+
+  .action-mini span {
+    font-size: 18px;
+  }
+}
