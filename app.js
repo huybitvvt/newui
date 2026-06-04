@@ -1,7 +1,37 @@
 const image = (id, w = 240, h = 240) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&h=${h}&q=80`;
 
-const homeItems = [
+const SUPABASE_REST_URL = "https://ilkfyzcqpbmimrkfybhx.supabase.co/rest/v1";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_2ifsGwogi_ZOP1LlrJggYg_l5VyBRk6";
+
+const moduleMeta = {
+  items: {
+    id: "items",
+    title: "Items",
+    subtitle: "Inventory list",
+    icon: "package-open",
+  },
+  "warehouse history": {
+    id: "warehouse",
+    title: "Warehouse History",
+    subtitle: "IN / OUT movement log",
+    icon: "warehouse",
+  },
+  people: {
+    id: "people",
+    title: "People",
+    subtitle: "Staff and operators",
+    icon: "users",
+  },
+  "setup work": {
+    id: "setup",
+    title: "Setup Work",
+    subtitle: "Workflow settings",
+    icon: "settings-2",
+  },
+};
+
+let homeItems = [
   {
     id: "items",
     title: "Items",
@@ -32,7 +62,7 @@ const homeItems = [
   },
 ];
 
-const items = [
+let items = [
   {
     name: "Avocado",
     price: 50,
@@ -51,13 +81,13 @@ const items = [
   { name: "Mint", price: 23, unit: "/CARTON-ADD BARCODE", barcode: "01175022650416181001911839", img: image("photo-1628556270448-4d4e4148e1b1") },
 ];
 
-const stockLog = [
+let stockLog = [
   { date: "17/5/2026", user: "Ammar", qty: 3 },
   { date: "27/4/2026", user: "Franco", qty: 1 },
   { date: "26/3/2026", user: "Store", qty: 1 },
 ];
 
-const warehouseIn = [
+let warehouseIn = [
   { date: "01/6/2026", count: 14, name: "Sauce Pistachio", user: "Ammar", qty: 14, img: image("photo-1606312619070-d48b4c652a52") },
   { date: "30/5/2026", count: 29, name: "A2 Can 500ml (Mojito)", user: "Ammar", qty: 9, img: image("photo-1544787219-7f47ccb76574") },
   { date: "30/5/2026", count: 29, name: "Lotus Sauce", user: "Ammar", qty: 20, img: image("photo-1581636625402-29b2a704ef13") },
@@ -65,7 +95,7 @@ const warehouseIn = [
   { date: "24/5/2026", count: 4, name: "Milk Chocolate", user: "Franco", qty: 3, img: image("photo-1511381939415-e44015466834") },
 ];
 
-const warehouseOut = [
+let warehouseOut = [
   { date: "01/6/2026", count: 28, name: "Nutella Pipping Bag", user: "Ammar", qty: -4, img: image("photo-1606313564200-e75d5e30476c") },
   { date: "01/6/2026", count: 28, name: "Sauce Ferrero", user: "Ammar", qty: -2, img: image("photo-1578985545062-69928b1d9587") },
   { date: "01/6/2026", count: 28, name: "Sauce Pistachio", user: "Ammar", qty: -1, img: image("photo-1606312619070-d48b4c652a52") },
@@ -78,6 +108,109 @@ let searchQuery = "";
 
 const qs = (selector) => document.querySelector(selector);
 const qsa = (selector) => [...document.querySelectorAll(selector)];
+
+async function supabaseFetch(path) {
+  const response = await fetch(`${SUPABASE_REST_URL}/${path}`, {
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase ${path} failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+function normalizeMenuRow(row) {
+  const key = String(row.menu || "").trim().toLowerCase();
+  const meta = moduleMeta[key];
+  if (!meta) {
+    return null;
+  }
+
+  return {
+    ...meta,
+    iconUrl: row.icon || "",
+  };
+}
+
+function normalizeItemRow(row) {
+  return {
+    name: row.name || "Unnamed item",
+    price: Number(row.price || 0),
+    unit: row.unit || "",
+    barcode: row.barcode_1 || "",
+    img: row.image_url || image("photo-1523049673857-eb18f1d7b578"),
+  };
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-GB").format(new Date(value));
+}
+
+function normalizeWarehouseRow(row) {
+  const item = row.items || {};
+  const person = row.people || {};
+  const qty = Number(row.quantity || 0);
+  return {
+    date: formatDate(row.created_at),
+    count: Math.abs(qty),
+    name: item.name || row.note || "Warehouse item",
+    user: person.name || "Store",
+    qty: row.movement_type === "OUT" ? -Math.abs(qty) : Math.abs(qty),
+    img: item.image_url || image("photo-1606312619070-d48b4c652a52"),
+  };
+}
+
+async function hydrateFromSupabase() {
+  try {
+    const menuRows = await supabaseFetch("menu?select=id,menu,catalog,icon,permission&order=catalog.asc");
+    const nextMenu = menuRows.map(normalizeMenuRow).filter(Boolean);
+    if (nextMenu.length) {
+      homeItems = nextMenu;
+      renderHome();
+    }
+  } catch (error) {
+    console.info(error.message);
+  }
+
+  try {
+    const itemRows = await supabaseFetch("items?select=id,name,unit,price,barcode_1,image_url,active&active=eq.true&order=name.asc");
+    if (itemRows.length) {
+      items = itemRows.map(normalizeItemRow);
+      selectedIndex = 0;
+      renderProducts();
+      renderDetail();
+      refreshIcons();
+    }
+  } catch (error) {
+    console.info(error.message);
+  }
+
+  try {
+    const historyRows = await supabaseFetch(
+      "warehouse_history?select=id,movement_type,quantity,note,created_at,items(name,image_url),people(name)&order=created_at.desc&limit=60",
+    );
+    if (historyRows.length) {
+      const normalized = historyRows.map(normalizeWarehouseRow);
+      warehouseIn = normalized.filter((row) => row.qty >= 0);
+      warehouseOut = normalized.filter((row) => row.qty < 0);
+      renderHistory("#warehouseIn", warehouseIn, "in");
+      renderHistory("#warehouseOut", warehouseOut, "out");
+      refreshIcons();
+    }
+  } catch (error) {
+    console.info(error.message);
+  }
+}
 
 function renderHome() {
   qs("#homeMenu").innerHTML = homeItems
@@ -308,3 +441,4 @@ if (window.location.hash) {
   setView(viewFromHash());
   refreshIcons();
 }
+hydrateFromSupabase();
