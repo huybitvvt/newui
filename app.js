@@ -84,15 +84,13 @@ function renderHome() {
     .join("");
 }
 
-function rowActions(kind = "cart") {
-  const lastIcon = kind === "check" ? "check" : "shopping-cart";
-  const lastClass = kind === "check" ? "check" : "cart";
+function rowActions() {
   return `
     <div class="row-actions">
       <span class="qty">0</span>
-      <button class="action-mini plus" type="button" aria-label="Add"><i data-lucide="plus"></i></button>
-      <button class="action-mini minus" type="button" aria-label="Remove"><i data-lucide="minus"></i></button>
-      <button class="action-mini ${lastClass}" type="button" aria-label="${kind}"><i data-lucide="${lastIcon}"></i></button>
+      <button class="action-mini delete" type="button" aria-label="Xóa"><i data-lucide="trash-2"></i></button>
+      <button class="action-mini minus" type="button" aria-label="Trừ"><i data-lucide="minus"></i></button>
+      <button class="action-mini confirm" type="button" aria-label="Xác nhận"><i data-lucide="check"></i></button>
     </div>
   `;
 }
@@ -230,6 +228,7 @@ function renderHistory(target, rows, type) {
 }
 
 function setView(viewName) {
+  document.body.dataset.view = viewName;
   qsa(".view").forEach((view) => view.classList.remove("active"));
   qsa(".rail-button").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
   qs(`#${viewName}View`)?.classList.add("active");
@@ -240,6 +239,11 @@ function setView(viewName) {
   renderProducts();
   renderChecklist();
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function viewFromHash() {
+  const viewName = window.location.hash.replace("#", "");
+  return qsa(".view").some((view) => view.id === `${viewName}View`) ? viewName : "home";
 }
 
 function bindEvents() {
@@ -299,6 +303,7 @@ function refreshIcons() {
   }
 }
 
+document.body.dataset.view = "home";
 renderHome();
 renderProducts();
 renderChecklist();
@@ -307,3 +312,7 @@ renderHistory("#warehouseIn", warehouseIn, "in");
 renderHistory("#warehouseOut", warehouseOut, "out");
 bindEvents();
 refreshIcons();
+if (window.location.hash) {
+  setView(viewFromHash());
+  refreshIcons();
+}
