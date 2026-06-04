@@ -37,7 +37,7 @@ let homeItems = [
     title: "Items",
     subtitle: "Inventory list",
     icon: "package-open",
-    iconUrl: "https://cdn-icons-png.flaticon.com/128/3621/3621280.png",
+    iconUrl: "assets/items-icon.svg",
   },
   {
     id: "warehouse",
@@ -134,7 +134,7 @@ function normalizeMenuRow(row) {
 
   return {
     ...meta,
-    iconUrl: row.icon || "",
+    iconUrl: meta.id === "items" ? "assets/items-icon.svg" : row.icon || "",
   };
 }
 
