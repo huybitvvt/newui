@@ -1024,7 +1024,7 @@ i[data-lucide] {
 
   .rail-button,
   .icon-button {
-    width: 36px;
+    width: 44px;
     height: 36px;
   }
 
@@ -2048,7 +2048,7 @@ i[data-lucide] {
     height: auto;
     display: flex;
     gap: 7px;
-    padding: 9px 3px;
+    padding: 9px 4px;
     background: #ffffff;
     border-right: 1px solid #d8e2ec;
     box-shadow: 3px 0 12px rgba(15, 23, 42, 0.07);
@@ -2060,7 +2060,7 @@ i[data-lucide] {
   }
 
   .rail-button {
-    width: 30px;
+    width: 36px;
     height: 34px;
     border-radius: 7px;
     color: #617181;
@@ -2083,8 +2083,8 @@ i[data-lucide] {
   }
 
   .content {
-    width: calc(100vw - 36px);
-    margin-left: 36px;
+    width: calc(100vw - 44px);
+    margin-left: 44px;
     background: #f3f6f9;
   }
 
@@ -2229,18 +2229,18 @@ i[data-lucide] {
 
 @media (max-width: 390px) {
   .rail {
-    width: 34px;
-    padding-right: 2px;
-    padding-left: 2px;
+    width: 42px;
+    padding-right: 3px;
+    padding-left: 3px;
   }
 
   .rail-button {
-    width: 30px;
+    width: 36px;
   }
 
   .content {
-    width: calc(100vw - 34px);
-    margin-left: 34px;
+    width: calc(100vw - 42px);
+    margin-left: 42px;
   }
 
   .menu-card {
