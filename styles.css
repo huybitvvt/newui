@@ -2195,14 +2195,21 @@ i[data-lucide] {
     height: 32px;
     border: 1px solid #dfe7ef;
     border-radius: 8px;
-    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
-  }
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
+}
 
-  .action-mini i {
-    width: 17px;
-    height: 17px;
-    stroke-width: 2.9;
-  }
+.action-mini span {
+  display: block;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.action-mini i {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2.9;
+}
 
   .action-mini.delete {
     color: #dc2626;
@@ -2255,5 +2262,9 @@ i[data-lucide] {
   .action-mini {
     width: 29px;
     height: 29px;
+  }
+
+  .action-mini span {
+    font-size: 20px;
   }
 }
