@@ -2268,3 +2268,38 @@ i[data-lucide] {
     font-size: 20px;
   }
 }
+
+.menu-visual img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.menu-visual {
+  position: relative;
+}
+
+.menu-visual img,
+.menu-visual > i {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+}
+
+.menu-visual img {
+  z-index: 2;
+}
+
+@media (max-width: 560px) {
+  .menu-visual img {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 390px) {
+  .menu-visual img {
+    width: 34px;
+    height: 34px;
+  }
+}

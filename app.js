@@ -2,10 +2,34 @@ const image = (id, w = 240, h = 240) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&h=${h}&q=80`;
 
 const homeItems = [
-  { id: "items", title: "Items", subtitle: "Inventory list", icon: "package-open" },
-  { id: "warehouse", title: "Warehouse History", subtitle: "IN / OUT movement log", icon: "warehouse" },
-  { id: "people", title: "People", subtitle: "Staff and operators", icon: "users" },
-  { id: "setup", title: "Setup Work", subtitle: "Workflow settings", icon: "settings-2" },
+  {
+    id: "items",
+    title: "Items",
+    subtitle: "Inventory list",
+    icon: "package-open",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/3621/3621280.png",
+  },
+  {
+    id: "warehouse",
+    title: "Warehouse History",
+    subtitle: "IN / OUT movement log",
+    icon: "warehouse",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/2897/2897818.png",
+  },
+  {
+    id: "people",
+    title: "People",
+    subtitle: "Staff and operators",
+    icon: "users",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/1489/1489404.png",
+  },
+  {
+    id: "setup",
+    title: "Setup Work",
+    subtitle: "Workflow settings",
+    icon: "settings-2",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/2049/2049831.png",
+  },
 ];
 
 const items = [
@@ -60,7 +84,14 @@ function renderHome() {
     .map(
       (item) => `
         <button class="menu-card" type="button" data-view="${item.id}">
-          <span class="menu-visual"><i data-lucide="${item.icon}"></i></span>
+          <span class="menu-visual">
+            <i data-lucide="${item.icon}"></i>
+            ${
+              item.iconUrl
+                ? `<img src="${item.iconUrl}" alt="" loading="lazy" onerror="this.remove()" />`
+                : ""
+            }
+          </span>
           <span>
             <span class="menu-title">${item.title}</span>
             <span class="menu-subtitle">${item.subtitle}</span>
