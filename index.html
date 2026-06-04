@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>Mississauga Inventory UI</title>
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="icon-button menu-toggle" type="button" aria-label="Menu">
+          <i data-lucide="menu"></i>
+        </button>
+        <button class="brand" type="button" data-view="home" aria-label="Go home">
+          <span class="brand-mark">M</span>
+          <span class="brand-name">MISSISSAUGA</span>
+        </button>
+        <div class="search-wrap">
+          <i data-lucide="search"></i>
+          <input id="globalSearch" type="search" placeholder="Search ITEMS" autocomplete="off" />
+        </div>
+        <button class="icon-button sync-button" type="button" aria-label="Sync">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+        <button class="avatar" type="button" aria-label="Account">U</button>
+      </header>
+
+      <aside class="rail" aria-label="Primary navigation">
+        <button class="rail-button active" type="button" data-view="home" aria-label="Home">
+          <i data-lucide="home"></i>
+        </button>
+        <button class="rail-button" type="button" data-view="items" aria-label="Items">
+          <i data-lucide="package-open"></i>
+        </button>
+        <button class="rail-button" type="button" data-view="checklist" aria-label="Checklist">
+          <i data-lucide="list-checks"></i>
+        </button>
+        <button class="rail-button" type="button" data-view="warehouse" aria-label="Warehouse History">
+          <i data-lucide="warehouse"></i>
+        </button>
+        <button class="rail-button" type="button" data-view="ipad" aria-label="Ipad">
+          <i data-lucide="tablet-smartphone"></i>
+        </button>
+        <button class="rail-button" type="button" data-view="people" aria-label="People">
+          <i data-lucide="users"></i>
+        </button>
+        <button class="rail-button" type="button" data-view="setup" aria-label="Setup Work">
+          <i data-lucide="settings-2"></i>
+        </button>
+        <button class="rail-button" type="button" data-view="cashflow" aria-label="Cash-Flow">
+          <i data-lucide="badge-dollar-sign"></i>
+        </button>
+      </aside>
+
+      <main class="content">
+        <section class="view active" id="homeView" aria-labelledby="homeTitle">
+          <div class="breadcrumbs">
+            <span>Home</span>
+          </div>
+          <div class="home-panel">
+            <h1 id="homeTitle">Home</h1>
+            <div class="menu-list" id="homeMenu"></div>
+          </div>
+        </section>
+
+        <section class="view" id="itemsView" aria-labelledby="itemsTitle">
+          <div class="page-head">
+            <div>
+              <div class="breadcrumbs">
+                <button type="button" data-view="home">Home</button>
+                <i data-lucide="chevron-right"></i>
+                <span>ITEMS</span>
+              </div>
+              <h1 id="itemsTitle">ITEMS</h1>
+            </div>
+            <div class="toolbar">
+              <button class="primary-button" type="button">
+                <i data-lucide="plus"></i>
+                <span>Add</span>
+              </button>
+              <button class="icon-button" type="button" aria-label="Filter">
+                <i data-lucide="list-filter"></i>
+              </button>
+              <button class="icon-button" type="button" aria-label="Select">
+                <i data-lucide="square-check"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="split-layout">
+            <section class="list-panel" aria-label="Items list">
+              <div class="group-title">
+                <span class="dot"></span>
+                <strong>Fruits - JT</strong>
+                <span class="count">17</span>
+              </div>
+              <div class="product-list" id="itemsList"></div>
+            </section>
+
+            <aside class="detail-panel" id="itemDetail" aria-label="Item detail"></aside>
+          </div>
+        </section>
+
+        <section class="view" id="checklistView" aria-labelledby="checklistTitle">
+          <div class="page-head">
+            <div>
+              <div class="breadcrumbs">
+                <button type="button" data-view="home">Home</button>
+                <i data-lucide="chevron-right"></i>
+                <span>Checklist</span>
+              </div>
+              <h1 id="checklistTitle">Checklist</h1>
+            </div>
+            <div class="toolbar">
+              <button class="primary-button" type="button">
+                <i data-lucide="plus"></i>
+                <span>Add</span>
+              </button>
+              <button class="icon-button" type="button" aria-label="Filter">
+                <i data-lucide="list-filter"></i>
+              </button>
+              <button class="icon-button" type="button" aria-label="Select">
+                <i data-lucide="square-check"></i>
+              </button>
+            </div>
+          </div>
+          <section class="list-panel full" aria-label="Checklist list">
+            <div class="group-title">
+              <strong>JT-Materials</strong>
+              <span class="count">28</span>
+            </div>
+            <div class="product-list checklist" id="checklistList"></div>
+          </section>
+        </section>
+
+        <section class="view" id="warehouseView" aria-labelledby="warehouseTitle">
+          <div class="page-head">
+            <div>
+              <div class="breadcrumbs">
+                <button type="button" data-view="home">Home</button>
+                <i data-lucide="chevron-right"></i>
+                <span>Warehouse History</span>
+              </div>
+              <h1 id="warehouseTitle">Warehouse History</h1>
+            </div>
+            <div class="toolbar">
+              <button class="icon-button" type="button" aria-label="Grid view">
+                <i data-lucide="layout-grid"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="history-layout">
+            <section class="history-panel in">
+              <div class="panel-head">
+                <h2>Warehouse IN</h2>
+                <div>
+                  <i data-lucide="list-filter"></i>
+                  <i data-lucide="square-check"></i>
+                </div>
+              </div>
+              <div class="history-list" id="warehouseIn"></div>
+            </section>
+            <section class="history-panel out">
+              <div class="panel-head">
+                <h2>Warehouse OUT</h2>
+                <div>
+                  <i data-lucide="list-filter"></i>
+                  <i data-lucide="square-check"></i>
+                </div>
+              </div>
+              <div class="history-list" id="warehouseOut"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view placeholder-view" id="ipadView">
+          <div class="placeholder-card">
+            <i data-lucide="tablet-smartphone"></i>
+            <h1>Ipad</h1>
+          </div>
+        </section>
+        <section class="view placeholder-view" id="peopleView">
+          <div class="placeholder-card">
+            <i data-lucide="users"></i>
+            <h1>People</h1>
+          </div>
+        </section>
+        <section class="view placeholder-view" id="setupView">
+          <div class="placeholder-card">
+            <i data-lucide="settings-2"></i>
+            <h1>Setup Work</h1>
+          </div>
+        </section>
+        <section class="view placeholder-view" id="cashflowView">
+          <div class="placeholder-card">
+            <i data-lucide="badge-dollar-sign"></i>
+            <h1>Cash-Flow</h1>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
