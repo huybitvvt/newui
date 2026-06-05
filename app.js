@@ -9,13 +9,19 @@ const thumbFallback = `onerror="this.onerror=null; this.src='${FALLBACK_THUMB}'"
 const moduleMeta = {
   items: {
     id: "items",
-    title: "Items",
+    title: "item",
     subtitle: "Inventory list",
     icon: "package-open",
   },
   "warehouse history": {
     id: "warehouse",
-    title: "Warehouse History",
+    title: "Warehouse",
+    subtitle: "IN / OUT movement log",
+    icon: "warehouse",
+  },
+  warehouse: {
+    id: "warehouse",
+    title: "Warehouse",
     subtitle: "IN / OUT movement log",
     icon: "warehouse",
   },
@@ -36,14 +42,14 @@ const moduleMeta = {
 let homeItems = [
   {
     id: "items",
-    title: "Items",
+    title: "item",
     subtitle: "Inventory list",
     icon: "package-open",
     iconUrl: "assets/items-icon.svg",
   },
   {
     id: "warehouse",
-    title: "Warehouse History",
+    title: "Warehouse",
     subtitle: "IN / OUT movement log",
     icon: "warehouse",
     iconUrl: "https://cdn-icons-png.flaticon.com/128/2897/2897818.png",
@@ -285,7 +291,7 @@ function renderDetail() {
   const item = items[selectedIndex];
   qs("#itemDetail").innerHTML = `
     <div class="detail-top">
-      <h2>${item.name}</h2>
+      <h2>Thông tin chi tiết của item</h2>
       <div class="toolbar">
         <button class="primary-button" type="button"><i data-lucide="plus"></i><span>IN ORDER</span></button>
         <button class="icon-button" type="button" aria-label="Close"><i data-lucide="x"></i></button>
@@ -368,7 +374,14 @@ function setView(viewName) {
   qsa(".view").forEach((view) => view.classList.remove("active"));
   qsa(".rail-button").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
   qs(`#${viewName}View`)?.classList.add("active");
-  const label = viewName === "items" ? "ITEMS" : viewName;
+  const searchLabels = {
+    items: "item",
+    warehouse: "Warehouse",
+    people: "People",
+    setup: "Setup Work",
+    home: "Home",
+  };
+  const label = searchLabels[viewName] || viewName;
   qs("#globalSearch").placeholder = `Search ${label}`;
   searchQuery = "";
   qs("#globalSearch").value = "";

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#ffffff" />
     <title>Mississauga Inventory UI</title>
     <link rel="preconnect" href="https://images.unsplash.com" />
-    <link rel="stylesheet" href="styles.css?v=inline-actions-9b8e2c4" />
+    <link rel="stylesheet" href="styles.css?v=view-labels-31f0c89" />
   </head>
   <body>
     <div class="app-shell">
@@ -20,7 +20,7 @@
         </button>
         <div class="search-wrap">
           <i data-lucide="search"></i>
-          <input id="globalSearch" type="search" placeholder="Search ITEMS" autocomplete="off" />
+          <input id="globalSearch" type="search" placeholder="Search item" autocomplete="off" />
         </div>
         <button class="icon-button sync-button" type="button" aria-label="Sync">
           <i data-lucide="refresh-cw"></i>
@@ -32,10 +32,10 @@
         <button class="rail-button active" type="button" data-view="home" aria-label="Home">
           <i data-lucide="home"></i>
         </button>
-        <button class="rail-button" type="button" data-view="items" aria-label="Items">
+        <button class="rail-button" type="button" data-view="items" aria-label="item">
           <i data-lucide="package-open"></i>
         </button>
-        <button class="rail-button" type="button" data-view="warehouse" aria-label="Warehouse History">
+        <button class="rail-button" type="button" data-view="warehouse" aria-label="Warehouse">
           <i data-lucide="warehouse"></i>
         </button>
         <button class="rail-button" type="button" data-view="people" aria-label="People">
@@ -63,9 +63,9 @@
               <div class="breadcrumbs">
                 <button type="button" data-view="home">Home</button>
                 <i data-lucide="chevron-right"></i>
-                <span>ITEMS</span>
+                <span>item</span>
               </div>
-              <h1 id="itemsTitle">ITEMS</h1>
+              <h1 id="itemsTitle">item</h1>
             </div>
             <div class="toolbar">
               <button class="primary-button" type="button">
@@ -82,7 +82,7 @@
           </div>
 
           <div class="split-layout">
-            <section class="list-panel" aria-label="Items list">
+            <section class="list-panel" aria-label="item list">
               <div class="group-title">
                 <span class="dot"></span>
                 <strong>Fruits - JT</strong>
@@ -91,7 +91,7 @@
               <div class="product-list" id="itemsList"></div>
             </section>
 
-            <aside class="detail-panel" id="itemDetail" aria-label="Item detail"></aside>
+            <aside class="detail-panel" id="itemDetail" aria-label="Thông tin chi tiết của item"></aside>
           </div>
         </section>
 
@@ -101,9 +101,9 @@
               <div class="breadcrumbs">
                 <button type="button" data-view="home">Home</button>
                 <i data-lucide="chevron-right"></i>
-                <span>Warehouse History</span>
+                <span>Warehouse</span>
               </div>
-              <h1 id="warehouseTitle">Warehouse History</h1>
+              <h1 id="warehouseTitle">Warehouse</h1>
             </div>
             <div class="toolbar">
               <button class="icon-button" type="button" aria-label="Grid view">
@@ -152,6 +152,6 @@
     </div>
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    <script src="app.js?v=inline-actions-9b8e2c4"></script>
+    <script src="app.js?v=view-labels-31f0c89"></script>
   </body>
 </html>
