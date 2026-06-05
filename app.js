@@ -238,13 +238,19 @@ function renderHome() {
     .join("");
 }
 
+const actionIcons = {
+  plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>`,
+  minus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>`,
+  check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>`,
+};
+
 function rowActions() {
   return `
     <div class="row-actions">
       <span class="qty">0</span>
-      <button class="action-mini plus" type="button" aria-label="Cộng"><i data-lucide="plus"></i></button>
-      <button class="action-mini minus" type="button" aria-label="Trừ"><i data-lucide="minus"></i></button>
-      <button class="action-mini confirm" type="button" aria-label="Xác nhận"><i data-lucide="check"></i></button>
+      <button class="action-mini plus" type="button" aria-label="Cộng">${actionIcons.plus}</button>
+      <button class="action-mini minus" type="button" aria-label="Trừ">${actionIcons.minus}</button>
+      <button class="action-mini confirm" type="button" aria-label="Xác nhận">${actionIcons.check}</button>
     </div>
   `;
 }

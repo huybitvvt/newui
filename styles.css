@@ -3063,3 +3063,44 @@ i[data-lucide] {
     height: 18px;
   }
 }
+
+.action-mini svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.action-mini.confirm svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Real mobile webviews can squeeze inline-grid children unless their box is locked. */
+@media (max-width: 560px) {
+  .brand-mark,
+  body[data-view="items"] .brand-mark,
+  body[data-view="warehouse"] .brand-mark,
+  body[data-view="people"] .brand-mark,
+  body[data-view="setup"] .brand-mark {
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 34px;
+    border-radius: 999px;
+    line-height: 1;
+  }
+
+  .brand {
+    flex-shrink: 0;
+  }
+
+}
