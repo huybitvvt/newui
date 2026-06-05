@@ -184,3 +184,38 @@ create index if not exists idx_items_category_id on public.items(category_id);
 create index if not exists idx_warehouse_history_item_id on public.warehouse_history(item_id);
 create index if not exists idx_warehouse_history_created_at on public.warehouse_history(created_at desc);
 create index if not exists idx_stock_log_item_id on public.stock_log(item_id);
+
+grant usage on schema public to anon, authenticated;
+grant select on
+  public.menu,
+  public.people,
+  public.item_categories,
+  public.items,
+  public.warehouse_history,
+  public.stock_log,
+  public.setup_work
+to anon, authenticated;
+
+alter table public.menu enable row level security;
+alter table public.people enable row level security;
+alter table public.item_categories enable row level security;
+alter table public.items enable row level security;
+alter table public.warehouse_history enable row level security;
+alter table public.stock_log enable row level security;
+alter table public.setup_work enable row level security;
+
+drop policy if exists "public read menu" on public.menu;
+drop policy if exists "public read people" on public.people;
+drop policy if exists "public read item categories" on public.item_categories;
+drop policy if exists "public read items" on public.items;
+drop policy if exists "public read warehouse history" on public.warehouse_history;
+drop policy if exists "public read stock log" on public.stock_log;
+drop policy if exists "public read setup work" on public.setup_work;
+
+create policy "public read menu" on public.menu for select using (true);
+create policy "public read people" on public.people for select using (true);
+create policy "public read item categories" on public.item_categories for select using (true);
+create policy "public read items" on public.items for select using (true);
+create policy "public read warehouse history" on public.warehouse_history for select using (true);
+create policy "public read stock log" on public.stock_log for select using (true);
+create policy "public read setup work" on public.setup_work for select using (true);
