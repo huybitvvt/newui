@@ -5,6 +5,7 @@ const SUPABASE_REST_URL = "https://ilkfyzcqpbmimrkfybhx.supabase.co/rest/v1";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_2ifsGwogi_ZOP1LlrJggYg_l5VyBRk6";
 const FALLBACK_THUMB = "assets/items-icon.svg";
 const thumbFallback = `onerror="this.onerror=null; this.src='${FALLBACK_THUMB}'"`;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const moduleMeta = {
   items: {
@@ -133,6 +134,32 @@ async function supabaseFetch(path) {
   return response.json();
 }
 
+async function supabaseInsert(table, payload) {
+  const response = await fetch(`${SUPABASE_REST_URL}/${table}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let message = `${response.status}`;
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch {
+      message = await response.text();
+    }
+    throw new Error(`Supabase insert ${table} failed: ${message}`);
+  }
+
+  return response.json();
+}
+
 function normalizeMenuRow(row) {
   const key = String(row.menu || "").trim().toLowerCase();
   const meta = moduleMeta[key];
@@ -148,6 +175,7 @@ function normalizeMenuRow(row) {
 
 function normalizeItemRow(row) {
   return {
+    id: row.id || "",
     name: row.name || "Unnamed item",
     price: Number(row.price || 0),
     unit: row.unit || "",
@@ -249,6 +277,64 @@ const actionIcons = {
   minus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>`,
   check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>`,
 };
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function localDateParts(value) {
+  return {
+    date: `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`,
+    time: `${pad2(value.getHours())}:${pad2(value.getMinutes())}:${pad2(value.getSeconds())}`,
+  };
+}
+
+function currentOperatorName() {
+  return qs(".avatar")?.textContent?.trim() || "U";
+}
+
+function checkPayloadForItem(item) {
+  const now = new Date();
+  const local = localDateParts(now);
+  const payload = {
+    item_name: item.name,
+    operator_name: currentOperatorName(),
+    checked_at: now.toISOString(),
+    checked_date: local.date,
+    checked_time: local.time,
+  };
+
+  if (uuidPattern.test(item.id || "")) {
+    payload.item_id = item.id;
+  }
+
+  return payload;
+}
+
+async function submitItemCheck(button, item) {
+  if (!item || button.disabled) {
+    return;
+  }
+
+  button.disabled = true;
+  button.classList.remove("is-checked", "is-error");
+  button.classList.add("is-saving");
+
+  try {
+    await supabaseInsert("check", checkPayloadForItem(item));
+    button.classList.remove("is-saving");
+    button.classList.add("is-checked");
+  } catch (error) {
+    console.info(error.message);
+    button.classList.remove("is-saving");
+    button.classList.add("is-error");
+    setTimeout(() => button.classList.remove("is-error"), 1600);
+  } finally {
+    setTimeout(() => {
+      button.disabled = false;
+    }, 700);
+  }
+}
 
 function rowActions() {
   return `
@@ -395,8 +481,14 @@ function viewFromHash() {
 }
 
 function bindEvents() {
-  document.addEventListener("click", (event) => {
-    if (event.target.closest(".action-mini")) {
+  document.addEventListener("click", async (event) => {
+    const actionButton = event.target.closest(".action-mini");
+    if (actionButton) {
+      if (actionButton.classList.contains("confirm")) {
+        const product = actionButton.closest("[data-index]");
+        const item = items[Number(product?.dataset.index)];
+        await submitItemCheck(actionButton, item);
+      }
       return;
     }
 
