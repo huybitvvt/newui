@@ -2988,3 +2988,78 @@ i[data-lucide] {
     font-size: 18px;
   }
 }
+
+/* Phone action buttons: keep plus/minus/check visually centered in real mobile webviews. */
+@media (max-width: 560px) {
+  .product-row {
+    grid-template-columns: 46px minmax(0, 1fr) 92px;
+    padding-right: 10px;
+  }
+
+  .row-actions {
+    width: 92px;
+    grid-template-columns: repeat(3, 27px);
+    justify-content: center;
+    justify-self: end;
+    gap: 4px;
+  }
+
+  .qty {
+    width: 100%;
+    justify-self: center;
+    padding-right: 2px;
+    text-align: right;
+  }
+
+  .action-mini {
+    width: 27px;
+    height: 27px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+
+  .action-mini svg,
+  .action-mini i {
+    width: 17px;
+    height: 17px;
+    display: block;
+    stroke-width: 3;
+  }
+
+  .action-mini.confirm svg,
+  .action-mini.confirm i {
+    width: 19px;
+    height: 19px;
+  }
+}
+
+@media (max-width: 390px) {
+  .product-row {
+    grid-template-columns: 42px minmax(0, 1fr) 88px;
+    padding-right: 8px;
+  }
+
+  .row-actions {
+    width: 88px;
+    grid-template-columns: repeat(3, 26px);
+    gap: 3px;
+  }
+
+  .action-mini {
+    width: 26px;
+    height: 26px;
+  }
+
+  .action-mini svg,
+  .action-mini i {
+    width: 16px;
+    height: 16px;
+  }
+
+  .action-mini.confirm svg,
+  .action-mini.confirm i {
+    width: 18px;
+    height: 18px;
+  }
+}
