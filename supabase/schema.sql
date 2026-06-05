@@ -80,6 +80,18 @@ create table if not exists public.stock_log (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public."check" (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid references public.items(id) on delete set null,
+  item_name text not null,
+  operator_id uuid references public.people(id) on delete set null,
+  operator_name text not null default 'U',
+  checked_at timestamptz not null default now(),
+  checked_date date not null default current_date,
+  checked_time time not null default localtime(0),
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.setup_work (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -184,6 +196,8 @@ create index if not exists idx_items_category_id on public.items(category_id);
 create index if not exists idx_warehouse_history_item_id on public.warehouse_history(item_id);
 create index if not exists idx_warehouse_history_created_at on public.warehouse_history(created_at desc);
 create index if not exists idx_stock_log_item_id on public.stock_log(item_id);
+create index if not exists idx_check_item_id on public."check"(item_id);
+create index if not exists idx_check_checked_at on public."check"(checked_at desc);
 
 grant usage on schema public to anon, authenticated;
 grant select on
@@ -193,8 +207,10 @@ grant select on
   public.items,
   public.warehouse_history,
   public.stock_log,
+  public."check",
   public.setup_work
 to anon, authenticated;
+grant insert on public."check" to anon, authenticated;
 
 alter table public.menu enable row level security;
 alter table public.people enable row level security;
@@ -202,6 +218,7 @@ alter table public.item_categories enable row level security;
 alter table public.items enable row level security;
 alter table public.warehouse_history enable row level security;
 alter table public.stock_log enable row level security;
+alter table public."check" enable row level security;
 alter table public.setup_work enable row level security;
 
 drop policy if exists "public read menu" on public.menu;
@@ -210,6 +227,8 @@ drop policy if exists "public read item categories" on public.item_categories;
 drop policy if exists "public read items" on public.items;
 drop policy if exists "public read warehouse history" on public.warehouse_history;
 drop policy if exists "public read stock log" on public.stock_log;
+drop policy if exists "public read check" on public."check";
+drop policy if exists "public insert check" on public."check";
 drop policy if exists "public read setup work" on public.setup_work;
 
 create policy "public read menu" on public.menu for select using (true);
@@ -218,4 +237,6 @@ create policy "public read item categories" on public.item_categories for select
 create policy "public read items" on public.items for select using (true);
 create policy "public read warehouse history" on public.warehouse_history for select using (true);
 create policy "public read stock log" on public.stock_log for select using (true);
+create policy "public read check" on public."check" for select using (true);
+create policy "public insert check" on public."check" for insert with check (true);
 create policy "public read setup work" on public.setup_work for select using (true);

@@ -639,6 +639,23 @@ h1 {
   background: #ecfdf3;
 }
 
+.action-mini.is-saving {
+  opacity: 0.68;
+  pointer-events: none;
+}
+
+.action-mini.confirm.is-checked {
+  color: #ffffff;
+  background: #0f8f55;
+  border-color: #0f8f55;
+}
+
+.action-mini.confirm.is-error {
+  color: #ffffff;
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
 .action-mini.cart {
   color: var(--purple);
   background: #f4efff;
