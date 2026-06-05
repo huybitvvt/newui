@@ -4,6 +4,23 @@
 
 create extension if not exists pgcrypto;
 
+drop table if exists public.ipad cascade;
+drop table if exists public.equipment cascade;
+drop table if exists public.checklist cascade;
+drop table if exists public.checklist_kpi cascade;
+drop table if exists public.dashboard_work cascade;
+drop table if exists public.appdata cascade;
+drop table if exists public.unitstable cascade;
+drop table if exists public.cashflow cascade;
+drop table if exists public."Ipad" cascade;
+drop table if exists public."EQUIPMENT" cascade;
+drop table if exists public."Checklist" cascade;
+drop table if exists public."Checklist KPI" cascade;
+drop table if exists public."Dashboard work" cascade;
+drop table if exists public."APPDATA" cascade;
+drop table if exists public."UNITSTABLE" cascade;
+drop table if exists public."Cash-Flow" cascade;
+
 create table if not exists public.menu (
   id text primary key,
   menu text not null,
@@ -70,6 +87,18 @@ create table if not exists public.setup_work (
   active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+delete from public.menu
+where lower(regexp_replace(menu, '[^a-z0-9]+', '', 'g')) in (
+  'ipad',
+  'equipment',
+  'checklist',
+  'checklistkpi',
+  'dashboardwork',
+  'appdata',
+  'unitstable',
+  'cashflow'
 );
 
 insert into public.menu (id, menu, catalog, icon, permission)
