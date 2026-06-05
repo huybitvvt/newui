@@ -3,6 +3,8 @@ const image = (id, w = 240, h = 240) =>
 
 const SUPABASE_REST_URL = "https://ilkfyzcqpbmimrkfybhx.supabase.co/rest/v1";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_2ifsGwogi_ZOP1LlrJggYg_l5VyBRk6";
+const FALLBACK_THUMB = "assets/items-icon.svg";
+const thumbFallback = `onerror="this.onerror=null; this.src='${FALLBACK_THUMB}'"`;
 
 const moduleMeta = {
   items: {
@@ -260,7 +262,7 @@ function renderProducts() {
     .map(
       (item) => `
         <div class="product-row ${item.index === selectedIndex ? "selected" : ""}" role="button" tabindex="0" data-index="${item.index}">
-          <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" />
+          <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" ${thumbFallback} />
           <span class="product-main">
             <span class="product-name">${item.name}-$${item.price}</span>
             <span class="product-unit">${item.unit}</span>
@@ -314,7 +316,7 @@ function renderDetail() {
             <div class="stock-group">
               <div class="stock-date">${entry.date} <span class="count">1</span></div>
               <div class="stock-entry">
-                <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" />
+                <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" ${thumbFallback} />
                 <span>
                   <span class="entry-title">${item.name}</span>
                   <span class="entry-user">${entry.user}</span>
@@ -343,7 +345,7 @@ function renderHistory(target, rows, type) {
       return `
         ${dateHead}
         <div class="history-entry">
-          <img class="thumb" src="${row.img}" alt="${row.name}" loading="lazy" />
+          <img class="thumb" src="${row.img}" alt="${row.name}" loading="lazy" ${thumbFallback} />
           <span>
             <span class="entry-title">${row.name}</span>
             <span class="entry-user">${row.user}</span>
@@ -391,7 +393,7 @@ function bindEvents() {
       renderProducts();
       renderDetail();
       refreshIcons();
-      if (window.matchMedia("(max-width: 900px)").matches) {
+      if (window.matchMedia("(min-width: 561px) and (max-width: 900px)").matches) {
         qs("#itemDetail").scrollIntoView({ block: "start", behavior: "smooth" });
       }
     }
@@ -407,7 +409,7 @@ function bindEvents() {
     renderProducts();
     renderDetail();
     refreshIcons();
-    if (window.matchMedia("(max-width: 900px)").matches) {
+    if (window.matchMedia("(min-width: 561px) and (max-width: 900px)").matches) {
       qs("#itemDetail").scrollIntoView({ block: "start", behavior: "smooth" });
     }
   });
