@@ -104,7 +104,7 @@ where lower(regexp_replace(menu, '[^a-z0-9]+', '', 'g')) in (
 insert into public.menu (id, menu, catalog, icon, permission)
 values
   ('329267b2', 'items', 1, 'assets/items-icon.svg', 'CEO , Staff'),
-  ('e3490d60', 'Warehouse History', 1, 'https://cdn-icons-png.flaticon.com/128/2897/2897818.png', 'CEO , Staff'),
+  ('e3490d60', 'Warehouse', 1, 'https://cdn-icons-png.flaticon.com/128/2897/2897818.png', 'CEO , Staff'),
   ('e3490d58', 'People', 1, 'https://cdn-icons-png.flaticon.com/128/1489/1489404.png', 'CEO'),
   ('e3490d69', 'Setup Work', 1, 'https://cdn-icons-png.flaticon.com/128/2049/2049831.png', 'CEO')
 on conflict (id) do update set
