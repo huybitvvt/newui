@@ -242,9 +242,9 @@ function rowActions() {
   return `
     <div class="row-actions">
       <span class="qty">0</span>
-      <button class="action-mini plus" type="button" aria-label="Cộng"><span aria-hidden="true">+</span></button>
-      <button class="action-mini minus" type="button" aria-label="Trừ"><span aria-hidden="true">−</span></button>
-      <button class="action-mini confirm" type="button" aria-label="Xác nhận"><span aria-hidden="true">✓</span></button>
+      <button class="action-mini plus" type="button" aria-label="Cộng"><i data-lucide="plus"></i></button>
+      <button class="action-mini minus" type="button" aria-label="Trừ"><i data-lucide="minus"></i></button>
+      <button class="action-mini confirm" type="button" aria-label="Xác nhận"><i data-lucide="check"></i></button>
     </div>
   `;
 }
