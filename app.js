@@ -410,11 +410,12 @@ function openOrderModal(item, button) {
   });
 }
 
-function openStockInModal(item, button) {
+function openStockModal(item, button, movementType = "IN") {
   if (!item) {
     return;
   }
-  activeModal = { type: "stock-in", item, button };
+  const isIn = movementType === "IN";
+  activeModal = { type: "stock", item, button, movementType };
   modalShell({
     title: item.name,
     body: `
@@ -436,11 +437,11 @@ function openStockInModal(item, button) {
       </label>
       <label class="form-field">
         <span>Type</span>
-        <input name="type" type="text" value="IN" disabled />
+        <input name="type" type="text" value="${movementType}" disabled />
       </label>
       <label class="form-field">
         <span>Note</span>
-        <textarea name="note" rows="3"></textarea>
+        <textarea name="note" rows="3" placeholder="${isIn ? "Warehouse receive" : "Warehouse out"}"></textarea>
       </label>
     `,
   });
@@ -478,25 +479,26 @@ async function submitOrderModal(form) {
   }
 }
 
-async function submitStockInModal(form) {
-  const { item, button } = activeModal;
+async function submitStockModal(form) {
+  const { item, button, movementType } = activeModal;
   const formData = new FormData(form);
   const quantity = Math.max(0, Number(formData.get("quantity") || 0));
-  const note = formData.get("note")?.toString().trim() || "Warehouse receive";
+  const isIn = movementType === "IN";
+  const note = formData.get("note")?.toString().trim() || (isIn ? "Warehouse receive" : "Warehouse out");
   button.disabled = true;
   markButtonState(button, "is-saving");
 
   try {
     const [historyRow] = await supabaseInsert("warehouse_history", {
       ...itemRefPayload(item),
-      movement_type: "IN",
+      movement_type: movementType,
       quantity,
       note,
     });
     await supabaseInsert("stock_log", {
       ...itemRefPayload(item),
       warehouse_history_id: historyRow?.id || null,
-      quantity_change: quantity,
+      quantity_change: isIn ? quantity : -quantity,
     });
     markButtonState(button, "is-checked");
     closeModal();
@@ -669,7 +671,7 @@ function bindEvents() {
     }
 
     if (event.target.closest("[data-stock-in-selected]")) {
-      openStockInModal(items[selectedIndex], event.target.closest("[data-stock-in-selected]"));
+      openStockModal(items[selectedIndex], event.target.closest("[data-stock-in-selected]"), "IN");
       return;
     }
 
@@ -678,7 +680,11 @@ function bindEvents() {
       const product = actionButton.closest("[data-index]");
       const item = items[Number(product?.dataset.index)];
       if (actionButton.classList.contains("plus")) {
-        openStockInModal(item, actionButton);
+        openStockModal(item, actionButton, "IN");
+        return;
+      }
+      if (actionButton.classList.contains("minus")) {
+        openStockModal(item, actionButton, "OUT");
         return;
       }
       if (actionButton.classList.contains("confirm")) {
@@ -739,8 +745,8 @@ function bindEvents() {
       await submitOrderModal(event.target);
       return;
     }
-    if (activeModal?.type === "stock-in") {
-      await submitStockInModal(event.target);
+    if (activeModal?.type === "stock") {
+      await submitStockModal(event.target);
     }
   });
 
