@@ -298,6 +298,7 @@ function checkPayloadForItem(item) {
   const local = localDateParts(now);
   const payload = {
     item_name: item.name,
+    item_image_url: item.img || "",
     operator_name: currentOperatorName(),
     checked_at: now.toISOString(),
     checked_date: local.date,

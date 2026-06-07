@@ -84,6 +84,7 @@ create table if not exists public."check" (
   id uuid primary key default gen_random_uuid(),
   item_id uuid references public.items(id) on delete set null,
   item_name text not null,
+  item_image_url text,
   operator_id uuid references public.people(id) on delete set null,
   operator_name text not null default 'U',
   checked_at timestamptz not null default now(),
@@ -91,6 +92,8 @@ create table if not exists public."check" (
   checked_time time not null default localtime(0),
   created_at timestamptz not null default now()
 );
+
+alter table public."check" add column if not exists item_image_url text;
 
 create table if not exists public.setup_work (
   id uuid primary key default gen_random_uuid(),
