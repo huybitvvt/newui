@@ -4,6 +4,8 @@ const image = (id, w = 240, h = 240) =>
 const SUPABASE_REST_URL = "https://ilkfyzcqpbmimrkfybhx.supabase.co/rest/v1";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_2ifsGwogi_ZOP1LlrJggYg_l5VyBRk6";
 const FALLBACK_THUMB = "assets/items-icon.svg";
+const CURRENT_BRAND = "MISSISSAUGA";
+const CURRENT_BRANCH = "JT";
 const thumbFallback = `onerror="this.onerror=null; this.src='${FALLBACK_THUMB}'"`;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -153,6 +155,30 @@ async function supabaseFetch(path) {
   return response.json();
 }
 
+async function supabaseFetchWithFallback(primaryPath, fallbackPath) {
+  try {
+    return await supabaseFetch(primaryPath);
+  } catch (error) {
+    console.info(error.message);
+    return supabaseFetch(fallbackPath);
+  }
+}
+
+function withoutTenantColumns(payload) {
+  const nextPayload = { ...payload };
+  delete nextPayload.brand;
+  delete nextPayload.branch;
+  return nextPayload;
+}
+
+function withoutUnsupportedColumns(payload, message) {
+  const nextPayload = /brand|branch/i.test(message) ? withoutTenantColumns(payload) : { ...payload };
+  if (/operator_name/i.test(message)) {
+    delete nextPayload.operator_name;
+  }
+  return nextPayload;
+}
+
 async function supabaseInsert(table, payload) {
   const response = await fetch(`${SUPABASE_REST_URL}/${table}`, {
     method: "POST",
@@ -172,6 +198,10 @@ async function supabaseInsert(table, payload) {
       message = error.message || message;
     } catch {
       message = await response.text();
+    }
+    const retryPayload = withoutUnsupportedColumns(payload, message);
+    if (JSON.stringify(retryPayload) !== JSON.stringify(payload)) {
+      return supabaseInsert(table, retryPayload);
     }
     throw new Error(`Supabase insert ${table} failed: ${message}`);
   }
@@ -218,6 +248,25 @@ function normalizeMenuRow(row) {
   };
 }
 
+function rowBrand(row) {
+  return row?.brand || row?.items?.brand || row?.people?.brand || CURRENT_BRAND;
+}
+
+function rowBranch(row) {
+  return row?.branch || row?.items?.branch || row?.people?.branch || CURRENT_BRANCH;
+}
+
+function isCurrentTenant(row) {
+  return rowBrand(row) === CURRENT_BRAND && rowBranch(row) === CURRENT_BRANCH;
+}
+
+function tenantPayload(source = {}) {
+  return {
+    brand: source.brand || CURRENT_BRAND,
+    branch: source.branch || CURRENT_BRANCH,
+  };
+}
+
 function normalizeItemRow(row) {
   const category = row.item_categories || {};
   return {
@@ -228,6 +277,8 @@ function normalizeItemRow(row) {
     unit: row.unit || "",
     barcode: row.barcode_1 || "",
     img: row.image_url || image("photo-1523049673857-eb18f1d7b578"),
+    brand: row.brand || CURRENT_BRAND,
+    branch: row.branch || CURRENT_BRANCH,
     stock: 0,
   };
 }
@@ -281,17 +332,31 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en-GB").format(new Date(value));
 }
 
+function formatTime(value) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 function normalizeWarehouseRow(row) {
   const item = row.items || {};
   const person = row.people || {};
   const qty = Number(row.quantity || 0);
   return {
     date: formatDate(row.created_at),
+    time: formatTime(row.created_at),
     count: Math.abs(qty),
     name: item.name || row.note || "Warehouse item",
-    user: person.name || "Store",
+    user: row.operator_name || person.name || "Store",
     qty: row.movement_type === "OUT" ? -Math.abs(qty) : Math.abs(qty),
     img: item.image_url || image("photo-1606312619070-d48b4c652a52"),
+    brand: rowBrand(row),
+    branch: rowBranch(row),
   };
 }
 
@@ -313,6 +378,8 @@ function normalizeChecklistRow(row) {
     checkedAt: row.checked_at || "",
     doneBy: row.done_by_name || "",
     doneAt: row.done_at || "",
+    brand: rowBrand(row),
+    branch: rowBranch(row),
   };
 
   normalized.stock = inventoryByItemKey[itemInventoryKey({ id: normalized.itemId, name: normalized.name })] || 0;
@@ -325,7 +392,8 @@ function normalizeWorkChecklistRow(row) {
     work: row.work || "",
     note: row.note || "",
     team: row.team || "(empty)",
-    branch: row.branch || "",
+    branch: row.branch || CURRENT_BRANCH,
+    brand: row.brand || CURRENT_BRAND,
     status: row.status || "pending",
     doneBy: row.done_by_name || "",
     doneAt: row.done_at || "",
@@ -341,6 +409,9 @@ function checklistInventoryItem(row) {
     price: row.price,
     img: row.img,
     stock: row.stock,
+    brand: row.brand,
+    branch: row.branch,
+    defaultQuantity: row.quantity || 0,
   };
 }
 
@@ -353,6 +424,8 @@ function normalizePersonRow(row) {
     email: row.email || "",
     active: row.active !== false,
     img: row.image_url || "",
+    brand: row.brand || CURRENT_BRAND,
+    branch: row.branch || CURRENT_BRANCH,
   };
 }
 
@@ -381,9 +454,12 @@ async function hydrateFromSupabase() {
   }
 
   try {
-    const itemRows = await supabaseFetch("items?select=id,name,unit,price,barcode_1,image_url,active,item_categories(name)&active=eq.true&order=name.asc");
+    const itemRows = await supabaseFetchWithFallback(
+      "items?select=id,name,unit,price,barcode_1,image_url,active,branch,brand,item_categories(name)&active=eq.true&order=name.asc",
+      "items?select=id,name,unit,price,barcode_1,image_url,active,item_categories(name)&active=eq.true&order=name.asc",
+    );
     if (itemRows.length) {
-      items = itemRows.map(normalizeItemRow);
+      items = itemRows.map(normalizeItemRow).filter(isCurrentTenant);
       applyInventoryToItems();
       selectedIndex = 0;
       renderProducts();
@@ -395,13 +471,15 @@ async function hydrateFromSupabase() {
   }
 
   try {
-    const historyRows = await supabaseFetch(
+    const historyRows = await supabaseFetchWithFallback(
+      "warehouse_history?select=id,item_id,movement_type,quantity,note,operator_name,created_at,branch,brand,items(name,image_url,branch,brand),people(name,branch,brand)&order=created_at.desc&limit=1000",
       "warehouse_history?select=id,item_id,movement_type,quantity,note,created_at,items(name,image_url),people(name)&order=created_at.desc&limit=1000",
     );
-    inventoryByItemKey = buildInventoryMap(historyRows);
+    const scopedHistoryRows = historyRows.filter(isCurrentTenant);
+    inventoryByItemKey = buildInventoryMap(scopedHistoryRows);
     applyInventoryToItems();
 
-    const normalized = historyRows.slice(0, 60).map(normalizeWarehouseRow);
+    const normalized = scopedHistoryRows.slice(0, 60).map(normalizeWarehouseRow);
     warehouseIn = normalized.filter((row) => row.qty >= 0);
     warehouseOut = normalized.filter((row) => row.qty < 0);
     renderProducts();
@@ -414,9 +492,11 @@ async function hydrateFromSupabase() {
   }
 
   try {
-    const workChecklistSelect =
-      "checklist?select=id,work,note,team,branch,status,done_by_name,done_at&order=team.asc,id.asc&limit=1000";
-    workChecklistRows = (await supabaseFetch(workChecklistSelect)).map(normalizeWorkChecklistRow);
+    const workChecklistRowsRaw = await supabaseFetchWithFallback(
+      "checklist?select=id,work,note,team,branch,brand,status,done_by_name,done_at&order=team.asc,id.asc&limit=1000",
+      "checklist?select=id,work,note,team,branch,status,done_by_name,done_at&order=team.asc,id.asc&limit=1000",
+    );
+    workChecklistRows = workChecklistRowsRaw.map(normalizeWorkChecklistRow).filter(isCurrentTenant);
     renderChecklist();
     refreshIcons();
   } catch (error) {
@@ -424,9 +504,11 @@ async function hydrateFromSupabase() {
   }
 
   try {
-    const checklistSelect =
-      "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,status,operator_name,checked_at,done_by_name,done_at,items(name,unit,price,image_url,item_categories(name))&order=created_at.desc&limit=1000";
-    checklistRows = (await supabaseFetch(checklistSelect)).map(normalizeChecklistRow);
+    const checklistRowsRaw = await supabaseFetchWithFallback(
+      "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,status,operator_name,checked_at,done_by_name,done_at,branch,brand,items(name,unit,price,image_url,branch,brand,item_categories(name))&order=created_at.desc&limit=1000",
+      "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,status,operator_name,checked_at,done_by_name,done_at,items(name,unit,price,image_url,item_categories(name))&order=created_at.desc&limit=1000",
+    );
+    checklistRows = checklistRowsRaw.map(normalizeChecklistRow).filter(isCurrentTenant);
     renderChecklist();
     refreshIcons();
   } catch (error) {
@@ -434,7 +516,7 @@ async function hydrateFromSupabase() {
     try {
       const fallbackSelect =
         "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,operator_name,checked_at,items(name,unit,price,image_url,item_categories(name))&order=created_at.desc&limit=1000";
-      checklistRows = (await supabaseFetch(fallbackSelect)).map(normalizeChecklistRow);
+      checklistRows = (await supabaseFetch(fallbackSelect)).map(normalizeChecklistRow).filter(isCurrentTenant);
       renderChecklist();
       refreshIcons();
     } catch (fallbackError) {
@@ -443,8 +525,11 @@ async function hydrateFromSupabase() {
   }
 
   try {
-    const peopleSelect = "people?select=id,name,role,phone,email,active,image_url&active=eq.true&order=role.asc,name.asc";
-    peopleRows = (await supabaseFetch(peopleSelect)).map(normalizePersonRow);
+    const peopleRowsRaw = await supabaseFetchWithFallback(
+      "people?select=id,name,role,phone,email,active,image_url,branch,brand&active=eq.true&order=role.asc,name.asc",
+      "people?select=id,name,role,phone,email,active,image_url&active=eq.true&order=role.asc,name.asc",
+    );
+    peopleRows = peopleRowsRaw.map(normalizePersonRow).filter(isCurrentTenant);
     renderPeople();
     refreshIcons();
   } catch (error) {
@@ -514,6 +599,7 @@ function checkedItemBasePayload(item) {
   const now = new Date();
   const local = localDateParts(now);
   const payload = {
+    ...tenantPayload(item),
     item_name: item.name,
     item_image_url: item.img || "",
     operator_name: currentOperatorName(),
@@ -544,7 +630,12 @@ function orderPayloadForItem(item, values) {
 }
 
 function itemRefPayload(item) {
-  return uuidPattern.test(item?.id || "") ? { item_id: item.id } : {};
+  const payload = tenantPayload(item);
+  if (uuidPattern.test(item?.id || "")) {
+    payload.item_id = item.id;
+  }
+
+  return payload;
 }
 
 function closeModal() {
@@ -624,6 +715,7 @@ function openStockModal(item, button, movementType = "IN") {
     return;
   }
   const isIn = movementType === "IN";
+  const defaultQuantity = Math.max(0, Number(item.defaultQuantity || 0));
   activeModal = { type: "stock", item, button, movementType };
   modalShell({
     title: item.name,
@@ -639,7 +731,7 @@ function openStockModal(item, button, movementType = "IN") {
       <label class="form-field">
         <span>Quantity</span>
         <span class="stepper">
-          <input id="modalQuantity" name="quantity" type="number" min="0" step="1" value="0" inputmode="numeric" />
+          <input id="modalQuantity" name="quantity" type="number" min="0" step="1" value="${defaultQuantity}" inputmode="numeric" />
           <button type="button" data-step="-1">${actionIcons.minus}</button>
           <button type="button" data-step="1">${actionIcons.plus}</button>
         </span>
@@ -704,12 +796,14 @@ async function submitStockModal(form) {
       ...itemRefPayload(item),
       movement_type: movementType,
       quantity,
+      operator_name: currentOperatorName(),
       note,
     });
     await supabaseInsert("stock_log", {
       ...itemRefPayload(item),
       warehouse_history_id: historyRow?.id || null,
       quantity_change: isIn ? quantity : -quantity,
+      operator_name: currentOperatorName(),
     });
     markButtonState(button, "is-checked");
     closeModal();
@@ -834,7 +928,7 @@ function renderHistory(target, rows, type) {
           <img class="thumb" src="${row.img}" alt="${row.name}" loading="lazy" ${thumbFallback} />
           <span>
             <span class="entry-title">${row.name}</span>
-            <span class="entry-user">${row.user}</span>
+            <span class="entry-user">${row.user}${row.time ? ` · ${row.time}` : ""}</span>
           </span>
           <span class="change ${changeClass}">${sign}${row.qty}</span>
         </div>
@@ -854,26 +948,42 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function fruitOrderRows() {
+  const allFruitRows = checklistRows.filter((row) => isFruitItem(row));
+  const pendingRows = allFruitRows.filter((row) => row.status !== "done");
+  return pendingRows.length ? pendingRows : allFruitRows;
+}
+
 function fruitSummaryItems() {
-  return items
-    .filter((item) => isFruitItem(item))
-    .map((item) => ({
-      name: item.name,
-      unit: item.unit || "",
-      stock: Number(item.stock || 0),
-      price: Number(item.price || 0),
-      img: item.img || FALLBACK_THUMB,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const grouped = fruitOrderRows().reduce((totals, row) => {
+    const key = row.itemId || row.name;
+    totals[key] = totals[key] || {
+      name: row.name,
+      unit: row.unit || "",
+      quantity: 0,
+      price: Number(row.price || 0),
+      img: row.img || FALLBACK_THUMB,
+      notes: [],
+    };
+    totals[key].quantity += Number(row.quantity || 0);
+    if (row.note) {
+      totals[key].notes.push(row.note);
+    }
+    return totals;
+  }, {});
+
+  return Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function fruitSummaryText() {
   const rows = fruitSummaryItems();
   const lines = [
-    "Fruits - JT Summary",
+    `${CURRENT_BRAND} / ${CURRENT_BRANCH} - Fruit Order Summary`,
     `Generated: ${new Intl.DateTimeFormat("en-GB", { dateStyle: "short", timeStyle: "short" }).format(new Date())}`,
     "",
-    ...rows.map((row) => `${row.name}${row.price ? `-$${row.price}` : ""} | ${row.unit || "UNIT"} | Stock: ${row.stock}`),
+    ...(rows.length
+      ? rows.map((row) => `${row.name}${row.price ? `-$${row.price}` : ""} | ${row.unit || "UNIT"} | Ordered: ${row.quantity}${row.notes.length ? ` | ${row.notes.join("; ")}` : ""}`)
+      : ["No fruit orders"]),
   ];
 
   return lines.join("\n");
@@ -938,7 +1048,8 @@ async function fruitSummaryImageBlob() {
   const width = 960;
   const padding = 40;
   const rowHeight = 58;
-  const height = Math.max(260, 148 + rows.length * rowHeight);
+  const displayRows = rows.length ? rows : [{ name: "No fruit orders", unit: "", quantity: 0, img: "" }];
+  const height = Math.max(260, 148 + displayRows.length * rowHeight);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -956,10 +1067,10 @@ async function fruitSummaryImageBlob() {
 
   context.fillStyle = "#0f172a";
   context.font = "700 34px Arial, sans-serif";
-  context.fillText("Fruits - JT Summary", padding, 74);
+  context.fillText("Fruit Order Summary", padding, 74);
   context.fillStyle = "#64748b";
   context.font = "18px Arial, sans-serif";
-  context.fillText(new Intl.DateTimeFormat("en-GB", { dateStyle: "short", timeStyle: "short" }).format(new Date()), padding, 108);
+  context.fillText(`${CURRENT_BRAND} / ${CURRENT_BRANCH} · ${new Intl.DateTimeFormat("en-GB", { dateStyle: "short", timeStyle: "short" }).format(new Date())}`, padding, 108);
 
   context.fillStyle = "#e8f4fb";
   context.fillRect(padding, 130, width - padding * 2, 40);
@@ -968,9 +1079,9 @@ async function fruitSummaryImageBlob() {
   context.fillText("Photo", padding + 16, 156);
   context.fillText("Item", padding + 82, 156);
   context.fillText("Unit", width - 360, 156);
-  context.fillText("Stock", width - 120, 156);
+  context.fillText("Ordered", width - 140, 156);
 
-  rows.forEach((row, index) => {
+  displayRows.forEach((row, index) => {
     const y = 170 + index * rowHeight;
     context.fillStyle = index % 2 ? "#ffffff" : "#fbfdff";
     context.fillRect(padding, y, width - padding * 2, rowHeight);
@@ -1002,7 +1113,7 @@ async function fruitSummaryImageBlob() {
     context.fillText(row.unit || "UNIT", width - 360, y + 35);
     context.fillStyle = "#1677b9";
     context.font = "700 22px Arial, sans-serif";
-    context.fillText(String(row.stock), width - 110, y + 36);
+    context.fillText(String(row.quantity), width - 120, y + 36);
   });
 
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
@@ -1051,7 +1162,7 @@ function fruitSummaryButtonHtml() {
     <div class="checklist-summary-bar">
       <button class="summary-copy-button" type="button" data-copy-fruits-summary>
         <i data-lucide="copy"></i>
-        <span>Copy Fruits Summary</span>
+        <span>Copy Fruit Orders</span>
       </button>
     </div>
   `;
