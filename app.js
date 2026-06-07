@@ -900,7 +900,7 @@ function renderProducts() {
         <div class="product-row ${item.index === selectedIndex ? "selected" : ""}" role="button" tabindex="0" data-index="${item.index}">
           <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" ${thumbFallback} />
           <span class="product-main">
-            <span class="product-name">${item.name}-$${item.price}</span>
+            <span class="product-name">${item.name} · $${item.price}</span>
             <span class="product-unit">${item.unit}</span>
           </span>
           ${rowActions(item)}
@@ -915,19 +915,19 @@ function renderDetail() {
   const item = items[selectedIndex];
   qs("#itemDetail").innerHTML = `
     <div class="detail-top">
-      <h2>Thông tin chi tiết của item</h2>
+      <h2>Item details</h2>
       <div class="toolbar">
-        <button class="primary-button" type="button" data-stock-in-selected><i data-lucide="plus"></i><span>IN ORDER</span></button>
+        <button class="primary-button" type="button" data-stock-in-selected><i data-lucide="plus"></i><span>Stock In</span></button>
         <button class="icon-button" type="button" aria-label="Close"><i data-lucide="x"></i></button>
       </div>
     </div>
     <div class="detail-grid">
       <div class="quick-card">
         <button class="quick-action" type="button"><i data-lucide="pencil"></i><span>Edit</span></button>
-        <button class="quick-action danger" type="button"><i data-lucide="minus"></i><span>OUT ORDER</span></button>
-        <button class="quick-action success" type="button"><i data-lucide="shopping-cart"></i><span>Go ORDER</span></button>
-        <button class="quick-action warn" type="button"><i data-lucide="calendar-days"></i><span>Expiration date</span></button>
-        <button class="quick-action" type="button"><i data-lucide="calendar-plus"></i><span>Add link</span></button>
+        <button class="quick-action danger" type="button"><i data-lucide="minus"></i><span>Stock Out</span></button>
+        <button class="quick-action success" type="button"><i data-lucide="shopping-cart"></i><span>Order</span></button>
+        <button class="quick-action warn" type="button"><i data-lucide="calendar-days"></i><span>Expiry</span></button>
+        <button class="quick-action" type="button"><i data-lucide="calendar-plus"></i><span>Link</span></button>
       </div>
       <div class="info-card">
         <div class="error-text">Error: UPC-E must contain only digits</div>
@@ -1389,7 +1389,7 @@ function renderChecklist() {
                 <div class="product-row checklist-row ${row.status === "done" ? "done" : ""}" data-check-index="${row.index}">
                   <img class="thumb" src="${row.img}" alt="${row.name}" loading="lazy" ${thumbFallback} />
                   <span class="product-main">
-                    <span class="product-name">${row.name}${row.price ? `-$${row.price}` : ""}</span>
+                    <span class="product-name">${row.name}${row.price ? ` · $${row.price}` : ""}</span>
                     <span class="product-unit">${row.unit || "ORDER"}</span>
                     <span class="check-meta">
                       ${row.status === "done" ? `Done by ${row.doneBy || row.operator || "U"} ${formatDateTime(row.doneAt)}` : `By ${row.operator} ${formatDateTime(row.checkedAt)}`}
