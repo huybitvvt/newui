@@ -862,6 +862,7 @@ function fruitSummaryItems() {
       unit: item.unit || "",
       stock: Number(item.stock || 0),
       price: Number(item.price || 0),
+      img: item.img || FALLBACK_THUMB,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -876,6 +877,35 @@ function fruitSummaryText() {
   ];
 
   return lines.join("\n");
+}
+
+function loadCanvasImage(src) {
+  return new Promise((resolve) => {
+    if (!src) {
+      resolve(null);
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function drawRoundedImage(context, img, x, y, size) {
+  context.save();
+  context.beginPath();
+  context.roundRect(x, y, size, size, 8);
+  context.clip();
+  context.drawImage(img, x, y, size, size);
+  context.restore();
+  context.strokeStyle = "#d9e4ee";
+  context.lineWidth = 1;
+  context.beginPath();
+  context.roundRect(x, y, size, size, 8);
+  context.stroke();
 }
 
 function wrapCanvasText(context, text, maxWidth) {
@@ -904,6 +934,7 @@ function wrapCanvasText(context, text, maxWidth) {
 
 async function fruitSummaryImageBlob() {
   const rows = fruitSummaryItems();
+  const rowImages = await Promise.all(rows.map((row) => loadCanvasImage(row.img)));
   const width = 960;
   const padding = 40;
   const rowHeight = 58;
@@ -934,7 +965,8 @@ async function fruitSummaryImageBlob() {
   context.fillRect(padding, 130, width - padding * 2, 40);
   context.fillStyle = "#1677b9";
   context.font = "700 18px Arial, sans-serif";
-  context.fillText("Item", padding + 16, 156);
+  context.fillText("Photo", padding + 16, 156);
+  context.fillText("Item", padding + 82, 156);
   context.fillText("Unit", width - 360, 156);
   context.fillText("Stock", width - 120, 156);
 
@@ -948,10 +980,23 @@ async function fruitSummaryImageBlob() {
     context.lineTo(width - padding, y + rowHeight);
     context.stroke();
 
+    const img = rowImages[index];
+    if (img) {
+      drawRoundedImage(context, img, padding + 16, y + 7, 44);
+    } else {
+      context.fillStyle = "#eef4fa";
+      context.beginPath();
+      context.roundRect(padding + 16, y + 7, 44, 44, 8);
+      context.fill();
+      context.fillStyle = "#64748b";
+      context.font = "700 20px Arial, sans-serif";
+      context.fillText("?", padding + 33, y + 36);
+    }
+
     context.fillStyle = "#0f172a";
     context.font = "700 20px Arial, sans-serif";
-    const itemLines = wrapCanvasText(context, `${row.name}${row.price ? `-$${row.price}` : ""}`, width - 460);
-    context.fillText(itemLines[0] || row.name, padding + 16, y + 35);
+    const itemLines = wrapCanvasText(context, `${row.name}${row.price ? `-$${row.price}` : ""}`, width - 540);
+    context.fillText(itemLines[0] || row.name, padding + 82, y + 35);
     context.fillStyle = "#334155";
     context.font = "18px Arial, sans-serif";
     context.fillText(row.unit || "UNIT", width - 360, y + 35);
