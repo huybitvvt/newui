@@ -13,9 +13,10 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 const moduleMeta = {
   items: {
     id: "items",
-    title: "item",
+    title: "Items",
     subtitle: "Inventory list",
     icon: "package-open",
+    iconUrl: "assets/items-icon.svg",
   },
   checklist: {
     id: "checklist",
@@ -52,7 +53,7 @@ const moduleMeta = {
 let homeItems = [
   {
     id: "items",
-    title: "item",
+    title: "Items",
     subtitle: "Inventory list",
     icon: "package-open",
     iconUrl: "assets/items-icon.svg",
@@ -62,28 +63,28 @@ let homeItems = [
     title: "Checklist",
     subtitle: "Orders waiting for check",
     icon: "clipboard-check",
-    iconUrl: "https://cdn-icons-png.flaticon.com/128/681/681662.png",
+    iconUrl: "",
   },
   {
     id: "warehouse",
     title: "Warehouse",
     subtitle: "IN / OUT movement log",
     icon: "warehouse",
-    iconUrl: "https://cdn-icons-png.flaticon.com/128/2897/2897818.png",
+    iconUrl: "",
   },
   {
     id: "people",
     title: "People",
     subtitle: "Staff and operators",
     icon: "users",
-    iconUrl: "https://cdn-icons-png.flaticon.com/128/1489/1489404.png",
+    iconUrl: "",
   },
   {
     id: "setup",
     title: "Setup Work",
     subtitle: "Workflow settings",
     icon: "settings-2",
-    iconUrl: "https://cdn-icons-png.flaticon.com/128/2049/2049831.png",
+    iconUrl: "",
   },
 ];
 
@@ -263,10 +264,12 @@ function normalizeMenuRow(row) {
   if (!meta) {
     return null;
   }
+  const iconValue = String(row.icon || "");
+  const isLocalImageIcon = /^(assets\/|\.\/|\/).+\.(svg|png|jpe?g|webp)(\?.*)?$/i.test(iconValue);
 
   return {
     ...meta,
-    iconUrl: meta.id === "items" ? "assets/items-icon.svg" : row.icon || "",
+    iconUrl: isLocalImageIcon ? iconValue : meta.iconUrl || "",
   };
 }
 
@@ -597,11 +600,10 @@ function renderHome() {
       (item) => `
         <button class="menu-card" type="button" data-view="${item.id}">
           <span class="menu-visual">
-            <i data-lucide="${item.icon}"></i>
             ${
               item.iconUrl
                 ? `<img src="${item.iconUrl}" alt="" loading="lazy" onerror="this.remove()" />`
-                : ""
+                : `<i data-lucide="${item.icon}"></i>`
             }
           </span>
           <span>
