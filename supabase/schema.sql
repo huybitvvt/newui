@@ -309,7 +309,7 @@ where lower(regexp_replace(menu, '[^a-z0-9]+', '', 'g')) in (
 insert into public.menu (id, menu, branch, brand, catalog, icon, permission)
 values
   ('329267b2', 'items', 'JT', 'MISSISSAUGA', 1, 'assets/items-icon.svg', 'CEO , Staff'),
-  ('e3490d59', 'Checklist', 'JT', 'MISSISSAUGA', 1, 'https://cdn-icons-png.flaticon.com/128/681/681662.png', 'CEO , Staff'),
+  ('e3490d59', 'Checklist', 'JT', 'MISSISSAUGA', 1, 'clipboard-check', 'CEO , Staff'),
   ('e3490d60', 'Warehouse', 'JT', 'MISSISSAUGA', 1, 'https://cdn-icons-png.flaticon.com/128/2897/2897818.png', 'CEO , Staff'),
   ('e3490d58', 'People', 'JT', 'MISSISSAUGA', 1, 'https://cdn-icons-png.flaticon.com/128/1489/1489404.png', 'CEO'),
   ('e3490d69', 'Setup Work', 'JT', 'MISSISSAUGA', 1, 'https://cdn-icons-png.flaticon.com/128/2049/2049831.png', 'CEO')
