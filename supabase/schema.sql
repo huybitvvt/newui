@@ -50,6 +50,79 @@ alter table public.people add column if not exists image_url text;
 alter table public.people add column if not exists branch text not null default 'JT';
 alter table public.people add column if not exists brand text not null default 'MISSISSAUGA';
 
+create table if not exists public.tenant_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  people_id uuid references public.people(id) on delete set null,
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
+  role text not null default 'Staff',
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.tenant_profiles add column if not exists people_id uuid references public.people(id) on delete set null;
+alter table public.tenant_profiles add column if not exists branch text not null default 'JT';
+alter table public.tenant_profiles add column if not exists brand text not null default 'MISSISSAUGA';
+alter table public.tenant_profiles add column if not exists role text not null default 'Staff';
+alter table public.tenant_profiles add column if not exists active boolean not null default true;
+alter table public.tenant_profiles add column if not exists updated_at timestamptz not null default now();
+
+create or replace function public.tenant_brand()
+returns text
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select coalesce(
+    nullif(auth.jwt() ->> 'brand', ''),
+    nullif((auth.jwt() -> 'app_metadata') ->> 'brand', ''),
+    (
+      select tp.brand
+      from public.tenant_profiles tp
+      where tp.user_id = auth.uid()
+        and tp.active = true
+      limit 1
+    ),
+    nullif((nullif(current_setting('request.headers', true), '')::json ->> 'x-tenant-brand'), ''),
+    'MISSISSAUGA'
+  );
+$$;
+
+create or replace function public.tenant_branch()
+returns text
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select coalesce(
+    nullif(auth.jwt() ->> 'branch', ''),
+    nullif((auth.jwt() -> 'app_metadata') ->> 'branch', ''),
+    (
+      select tp.branch
+      from public.tenant_profiles tp
+      where tp.user_id = auth.uid()
+        and tp.active = true
+      limit 1
+    ),
+    nullif((nullif(current_setting('request.headers', true), '')::json ->> 'x-tenant-branch'), ''),
+    'JT'
+  );
+$$;
+
+create or replace function public.same_tenant(row_brand text, row_branch text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select row_brand = public.tenant_brand()
+    and row_branch = public.tenant_branch();
+$$;
+
 create table if not exists public.item_categories (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -105,15 +178,21 @@ create table if not exists public.stock_log (
   branch text not null default 'JT',
   brand text not null default 'MISSISSAUGA',
   warehouse_history_id uuid references public.warehouse_history(id) on delete set null,
+  log_type text not null default 'WAREHOUSE' check (log_type in ('WAREHOUSE', 'ORDER')),
   quantity_change integer not null,
+  order_quantity integer,
   operator_id uuid references public.people(id) on delete set null,
   operator_name text not null default 'U',
+  note text,
   created_at timestamptz not null default now()
 );
 
 alter table public.stock_log add column if not exists branch text not null default 'JT';
 alter table public.stock_log add column if not exists brand text not null default 'MISSISSAUGA';
+alter table public.stock_log add column if not exists log_type text not null default 'WAREHOUSE';
+alter table public.stock_log add column if not exists order_quantity integer;
 alter table public.stock_log add column if not exists operator_name text not null default 'U';
+alter table public.stock_log add column if not exists note text;
 
 create table if not exists public."check" (
   id uuid primary key default gen_random_uuid(),
@@ -151,6 +230,26 @@ alter table public."check" add column if not exists done_by_name text;
 alter table public."check" add column if not exists done_at timestamptz;
 alter table public."check" add column if not exists done_date date;
 alter table public."check" add column if not exists done_time time;
+
+alter table public.stock_log add column if not exists order_check_id uuid references public."check"(id) on delete set null;
+
+create table if not exists public.fruit_order_photos (
+  id uuid primary key default gen_random_uuid(),
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
+  photo_url text not null,
+  note text,
+  operator_id uuid references public.people(id) on delete set null,
+  operator_name text not null default 'U',
+  created_at timestamptz not null default now()
+);
+
+alter table public.fruit_order_photos add column if not exists branch text not null default 'JT';
+alter table public.fruit_order_photos add column if not exists brand text not null default 'MISSISSAUGA';
+alter table public.fruit_order_photos add column if not exists photo_url text;
+alter table public.fruit_order_photos add column if not exists note text;
+alter table public.fruit_order_photos add column if not exists operator_id uuid references public.people(id) on delete set null;
+alter table public.fruit_order_photos add column if not exists operator_name text not null default 'U';
 
 create table if not exists public.checklist (
   id text primary key,
@@ -351,19 +450,22 @@ on conflict (id) do update set
   note = excluded.note,
   created_at = excluded.created_at;
 
-insert into public.stock_log (id, item_id, branch, brand, warehouse_history_id, quantity_change, operator_id, operator_name, created_at)
+insert into public.stock_log (id, item_id, branch, brand, warehouse_history_id, log_type, quantity_change, order_quantity, operator_id, operator_name, note, created_at)
 values
-  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'JT', 'MISSISSAUGA', '10000000-0000-0000-0000-000000000001', 14, '11111111-1111-1111-1111-111111111111', 'Ammar', now() - interval '3 days'),
-  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'JT', 'MISSISSAUGA', '10000000-0000-0000-0000-000000000002', -4, '11111111-1111-1111-1111-111111111111', 'Ammar', now() - interval '2 days'),
-  ('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003', 'JT', 'MISSISSAUGA', '10000000-0000-0000-0000-000000000003', 9, '22222222-2222-2222-2222-222222222222', 'Franco', now() - interval '1 day')
+  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'JT', 'MISSISSAUGA', '10000000-0000-0000-0000-000000000001', 'WAREHOUSE', 14, null, '11111111-1111-1111-1111-111111111111', 'Ammar', 'Initial stock', now() - interval '3 days'),
+  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'JT', 'MISSISSAUGA', '10000000-0000-0000-0000-000000000002', 'WAREHOUSE', -4, null, '11111111-1111-1111-1111-111111111111', 'Ammar', 'Order stock', now() - interval '2 days'),
+  ('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003', 'JT', 'MISSISSAUGA', '10000000-0000-0000-0000-000000000003', 'WAREHOUSE', 9, null, '22222222-2222-2222-2222-222222222222', 'Franco', 'Warehouse receive', now() - interval '1 day')
 on conflict (id) do update set
   item_id = excluded.item_id,
   branch = excluded.branch,
   brand = excluded.brand,
   warehouse_history_id = excluded.warehouse_history_id,
+  log_type = excluded.log_type,
   quantity_change = excluded.quantity_change,
+  order_quantity = excluded.order_quantity,
   operator_id = excluded.operator_id,
   operator_name = excluded.operator_name,
+  note = excluded.note,
   created_at = excluded.created_at;
 
 insert into public.setup_work (id, name, branch, brand, value, active)
@@ -381,8 +483,11 @@ create index if not exists idx_items_category_id on public.items(category_id);
 create index if not exists idx_warehouse_history_item_id on public.warehouse_history(item_id);
 create index if not exists idx_warehouse_history_created_at on public.warehouse_history(created_at desc);
 create index if not exists idx_stock_log_item_id on public.stock_log(item_id);
+create index if not exists idx_stock_log_log_type on public.stock_log(log_type);
+create index if not exists idx_stock_log_order_check_id on public.stock_log(order_check_id);
 create index if not exists idx_check_item_id on public."check"(item_id);
 create index if not exists idx_check_checked_at on public."check"(checked_at desc);
+create index if not exists idx_fruit_order_photos_tenant_created on public.fruit_order_photos(brand, branch, created_at desc);
 create index if not exists idx_checklist_team on public.checklist(team);
 create index if not exists idx_checklist_status on public.checklist(status);
 create index if not exists idx_items_tenant on public.items(brand, branch);
@@ -390,38 +495,45 @@ create index if not exists idx_people_tenant on public.people(brand, branch);
 create index if not exists idx_warehouse_history_tenant on public.warehouse_history(brand, branch);
 create index if not exists idx_stock_log_tenant on public.stock_log(brand, branch);
 create index if not exists idx_check_tenant on public."check"(brand, branch);
+create index if not exists idx_fruit_order_photos_tenant on public.fruit_order_photos(brand, branch);
 create index if not exists idx_checklist_tenant on public.checklist(brand, branch);
 
 grant usage on schema public to anon, authenticated;
 grant select on
   public.menu,
   public.people,
+  public.tenant_profiles,
   public.item_categories,
   public.items,
   public.warehouse_history,
   public.stock_log,
   public."check",
+  public.fruit_order_photos,
   public.checklist,
   public.setup_work
 to anon, authenticated;
 grant insert on public."check" to anon, authenticated;
 grant update on public."check" to anon, authenticated;
 grant update on public.checklist to anon, authenticated;
+grant insert on public.fruit_order_photos to anon, authenticated;
 grant insert on public.warehouse_history to anon, authenticated;
 grant insert on public.stock_log to anon, authenticated;
 
 alter table public.menu enable row level security;
 alter table public.people enable row level security;
+alter table public.tenant_profiles enable row level security;
 alter table public.item_categories enable row level security;
 alter table public.items enable row level security;
 alter table public.warehouse_history enable row level security;
 alter table public.stock_log enable row level security;
 alter table public."check" enable row level security;
+alter table public.fruit_order_photos enable row level security;
 alter table public.checklist enable row level security;
 alter table public.setup_work enable row level security;
 
 drop policy if exists "public read menu" on public.menu;
 drop policy if exists "public read people" on public.people;
+drop policy if exists "public read tenant profiles" on public.tenant_profiles;
 drop policy if exists "public read item categories" on public.item_categories;
 drop policy if exists "public read items" on public.items;
 drop policy if exists "public read warehouse history" on public.warehouse_history;
@@ -431,21 +543,60 @@ drop policy if exists "public insert stock log" on public.stock_log;
 drop policy if exists "public read check" on public."check";
 drop policy if exists "public insert check" on public."check";
 drop policy if exists "public update check" on public."check";
+drop policy if exists "public read fruit order photos" on public.fruit_order_photos;
+drop policy if exists "public insert fruit order photos" on public.fruit_order_photos;
 drop policy if exists "public read checklist" on public.checklist;
 drop policy if exists "public update checklist" on public.checklist;
 drop policy if exists "public read setup work" on public.setup_work;
+drop policy if exists "tenant read menu" on public.menu;
+drop policy if exists "tenant read people" on public.people;
+drop policy if exists "tenant read own profile" on public.tenant_profiles;
+drop policy if exists "tenant read item categories" on public.item_categories;
+drop policy if exists "tenant read items" on public.items;
+drop policy if exists "tenant read warehouse history" on public.warehouse_history;
+drop policy if exists "tenant insert warehouse history" on public.warehouse_history;
+drop policy if exists "tenant read stock log" on public.stock_log;
+drop policy if exists "tenant insert stock log" on public.stock_log;
+drop policy if exists "tenant read check" on public."check";
+drop policy if exists "tenant insert check" on public."check";
+drop policy if exists "tenant update check" on public."check";
+drop policy if exists "tenant read fruit order photos" on public.fruit_order_photos;
+drop policy if exists "tenant insert fruit order photos" on public.fruit_order_photos;
+drop policy if exists "tenant read checklist" on public.checklist;
+drop policy if exists "tenant update checklist" on public.checklist;
+drop policy if exists "tenant read setup work" on public.setup_work;
 
-create policy "public read menu" on public.menu for select using (true);
-create policy "public read people" on public.people for select using (true);
-create policy "public read item categories" on public.item_categories for select using (true);
-create policy "public read items" on public.items for select using (true);
-create policy "public read warehouse history" on public.warehouse_history for select using (true);
-create policy "public insert warehouse history" on public.warehouse_history for insert with check (true);
-create policy "public read stock log" on public.stock_log for select using (true);
-create policy "public insert stock log" on public.stock_log for insert with check (true);
-create policy "public read check" on public."check" for select using (true);
-create policy "public insert check" on public."check" for insert with check (true);
-create policy "public update check" on public."check" for update using (true) with check (true);
-create policy "public read checklist" on public.checklist for select using (true);
-create policy "public update checklist" on public.checklist for update using (true) with check (true);
-create policy "public read setup work" on public.setup_work for select using (true);
+create policy "tenant read menu" on public.menu
+  for select using (public.same_tenant(brand, branch));
+create policy "tenant read people" on public.people
+  for select using (public.same_tenant(brand, branch));
+create policy "tenant read own profile" on public.tenant_profiles
+  for select using (auth.uid() is not null and user_id = auth.uid());
+create policy "tenant read item categories" on public.item_categories
+  for select using (public.same_tenant(brand, branch));
+create policy "tenant read items" on public.items
+  for select using (public.same_tenant(brand, branch));
+create policy "tenant read warehouse history" on public.warehouse_history
+  for select using (public.same_tenant(brand, branch));
+create policy "tenant insert warehouse history" on public.warehouse_history
+  for insert with check (public.same_tenant(brand, branch));
+create policy "tenant read stock log" on public.stock_log
+  for select using (public.same_tenant(brand, branch));
+create policy "tenant insert stock log" on public.stock_log
+  for insert with check (public.same_tenant(brand, branch));
+create policy "tenant read check" on public."check"
+  for select using (public.same_tenant(brand, branch));
+create policy "tenant insert check" on public."check"
+  for insert with check (public.same_tenant(brand, branch));
+create policy "tenant update check" on public."check"
+  for update using (public.same_tenant(brand, branch)) with check (public.same_tenant(brand, branch));
+create policy "tenant read fruit order photos" on public.fruit_order_photos
+  for select using (public.same_tenant(brand, branch));
+create policy "tenant insert fruit order photos" on public.fruit_order_photos
+  for insert with check (public.same_tenant(brand, branch));
+create policy "tenant read checklist" on public.checklist
+  for select using (public.same_tenant(brand, branch));
+create policy "tenant update checklist" on public.checklist
+  for update using (public.same_tenant(brand, branch)) with check (public.same_tenant(brand, branch));
+create policy "tenant read setup work" on public.setup_work
+  for select using (public.same_tenant(brand, branch));

@@ -2,6 +2,7 @@ const image = (id, w = 240, h = 240) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&h=${h}&q=80`;
 
 const SUPABASE_REST_URL = "https://ilkfyzcqpbmimrkfybhx.supabase.co/rest/v1";
+const SUPABASE_API_URL = SUPABASE_REST_URL.replace("/rest/v1", "");
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_2ifsGwogi_ZOP1LlrJggYg_l5VyBRk6";
 const FALLBACK_THUMB = "assets/items-icon.svg";
 const CURRENT_BRAND = "MISSISSAUGA";
@@ -133,19 +134,32 @@ let activeModal = null;
 let inventoryByItemKey = {};
 let checklistRows = [];
 let workChecklistRows = [];
+let fruitPhotoRows = [];
 let peopleRows = [];
 let peopleRoleFilter = "All";
 
 const qs = (selector) => document.querySelector(selector);
 const qsa = (selector) => [...document.querySelectorAll(selector)];
 
+function supabaseAuthToken() {
+  return localStorage.getItem("mississauga_access_token") || SUPABASE_PUBLISHABLE_KEY;
+}
+
+function supabaseHeaders(extra = {}) {
+  return {
+    apikey: SUPABASE_PUBLISHABLE_KEY,
+    Authorization: `Bearer ${supabaseAuthToken()}`,
+    "x-tenant-brand": CURRENT_BRAND,
+    "x-tenant-branch": CURRENT_BRANCH,
+    ...extra,
+  };
+}
+
 async function supabaseFetch(path) {
   const response = await fetch(`${SUPABASE_REST_URL}/${path}`, {
-    headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+    headers: supabaseHeaders({
       Accept: "application/json",
-    },
+    }),
   });
 
   if (!response.ok) {
@@ -176,18 +190,28 @@ function withoutUnsupportedColumns(payload, message) {
   if (/operator_name/i.test(message)) {
     delete nextPayload.operator_name;
   }
+  if (/log_type/i.test(message)) {
+    delete nextPayload.log_type;
+  }
+  if (/order_check_id/i.test(message)) {
+    delete nextPayload.order_check_id;
+  }
+  if (/order_quantity/i.test(message)) {
+    delete nextPayload.order_quantity;
+  }
+  if (/note/i.test(message) && "quantity_change" in nextPayload) {
+    delete nextPayload.note;
+  }
   return nextPayload;
 }
 
 async function supabaseInsert(table, payload) {
   const response = await fetch(`${SUPABASE_REST_URL}/${table}`, {
     method: "POST",
-    headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+    headers: supabaseHeaders({
       "Content-Type": "application/json",
       Prefer: "return=representation",
-    },
+    }),
     body: JSON.stringify(payload),
   });
 
@@ -212,12 +236,10 @@ async function supabaseInsert(table, payload) {
 async function supabaseUpdate(table, filter, payload) {
   const response = await fetch(`${SUPABASE_REST_URL}/${table}?${filter}`, {
     method: "PATCH",
-    headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+    headers: supabaseHeaders({
       "Content-Type": "application/json",
       Prefer: "return=representation",
-    },
+    }),
     body: JSON.stringify(payload),
   });
 
@@ -429,6 +451,18 @@ function normalizePersonRow(row) {
   };
 }
 
+function normalizeFruitPhotoRow(row) {
+  return {
+    id: row.id || "",
+    url: row.photo_url || "",
+    note: row.note || "",
+    operator: row.operator_name || "U",
+    createdAt: row.created_at || "",
+    brand: row.brand || CURRENT_BRAND,
+    branch: row.branch || CURRENT_BRANCH,
+  };
+}
+
 async function hydrateFromSupabase() {
   try {
     const menuRows = await supabaseFetch("menu?select=id,menu,catalog,icon,permission&order=catalog.asc");
@@ -522,6 +556,18 @@ async function hydrateFromSupabase() {
     } catch (fallbackError) {
       console.info(fallbackError.message);
     }
+  }
+
+  try {
+    const fruitPhotoRowsRaw = await supabaseFetchWithFallback(
+      "fruit_order_photos?select=id,photo_url,note,operator_name,created_at,branch,brand&order=created_at.desc&limit=12",
+      "fruit_order_photos?select=id,photo_url,note,operator_name,created_at&order=created_at.desc&limit=12",
+    );
+    fruitPhotoRows = fruitPhotoRowsRaw.map(normalizeFruitPhotoRow).filter(isCurrentTenant);
+    renderChecklist();
+    refreshIcons();
+  } catch (error) {
+    console.info(error.message);
   }
 
   try {
@@ -761,13 +807,23 @@ function markButtonState(button, state) {
 async function submitOrderModal(form) {
   const { item, button } = activeModal;
   const formData = new FormData(form);
+  const orderPayload = orderPayloadForItem(item, {
+    quantity: formData.get("quantity"),
+    note: formData.get("note")?.toString().trim(),
+  });
   button.disabled = true;
   markButtonState(button, "is-saving");
   try {
-    await supabaseInsert("check", orderPayloadForItem(item, {
-      quantity: formData.get("quantity"),
-      note: formData.get("note")?.toString().trim(),
-    }));
+    const [orderRow] = await supabaseInsert("check", orderPayload);
+    await supabaseInsert("stock_log", {
+      ...itemRefPayload(item),
+      log_type: "ORDER",
+      order_check_id: orderRow?.id || null,
+      order_quantity: Number(orderPayload.quantity || 0),
+      quantity_change: 0,
+      operator_name: currentOperatorName(),
+      note: orderPayload.note || "Order request",
+    });
     markButtonState(button, "is-checked");
     closeModal();
     await hydrateFromSupabase();
@@ -1045,11 +1101,13 @@ function wrapCanvasText(context, text, maxWidth) {
 async function fruitSummaryImageBlob() {
   const rows = fruitSummaryItems();
   const rowImages = await Promise.all(rows.map((row) => loadCanvasImage(row.img)));
+  const capturedImages = await Promise.all(fruitPhotoRows.slice(0, 4).map((row) => loadCanvasImage(row.url)));
   const width = 960;
   const padding = 40;
   const rowHeight = 58;
   const displayRows = rows.length ? rows : [{ name: "No fruit orders", unit: "", quantity: 0, img: "" }];
-  const height = Math.max(260, 148 + displayRows.length * rowHeight);
+  const photoHeight = capturedImages.some(Boolean) ? 210 : 0;
+  const height = Math.max(260, 148 + displayRows.length * rowHeight + photoHeight);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -1116,6 +1174,20 @@ async function fruitSummaryImageBlob() {
     context.fillText(String(row.quantity), width - 120, y + 36);
   });
 
+  if (capturedImages.some(Boolean)) {
+    const y = 184 + displayRows.length * rowHeight;
+    context.fillStyle = "#0f172a";
+    context.font = "700 22px Arial, sans-serif";
+    context.fillText("Purchased Fruit Photos", padding, y);
+    capturedImages.forEach((img, index) => {
+      if (!img) {
+        return;
+      }
+      const x = padding + index * 216;
+      drawRoundedImage(context, img, x, y + 20, 180);
+    });
+  }
+
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 }
 
@@ -1157,14 +1229,117 @@ async function copyFruitSummary(button) {
   }
 }
 
+function openHiddenFileInput({ accept = "image/*", capture = "environment" } = {}) {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    if (capture) {
+      input.setAttribute("capture", capture);
+    }
+    input.style.position = "fixed";
+    input.style.left = "-10000px";
+    input.addEventListener("change", () => {
+      const file = input.files?.[0] || null;
+      input.remove();
+      resolve(file);
+    }, { once: true });
+    document.body.appendChild(input);
+    input.click();
+  });
+}
+
+function compressImageFile(file, maxSize = 1280, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const context = canvas.getContext("2d");
+        context.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function captureFruitPhoto(button) {
+  if (!button) {
+    return;
+  }
+
+  const original = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = `<i data-lucide="loader-2"></i><span>Opening camera...</span>`;
+  refreshIcons();
+
+  try {
+    const file = await openHiddenFileInput();
+    if (!file) {
+      return;
+    }
+    button.innerHTML = `<i data-lucide="loader-2"></i><span>Saving photo...</span>`;
+    refreshIcons();
+    const photoUrl = await compressImageFile(file);
+    await supabaseInsert("fruit_order_photos", {
+      ...tenantPayload(),
+      photo_url: photoUrl,
+      operator_name: currentOperatorName(),
+      note: "Fruit purchase confirmation",
+    });
+    await hydrateFromSupabase();
+    button.innerHTML = `<i data-lucide="check"></i><span>Photo saved</span>`;
+  } catch (error) {
+    console.info(error.message);
+    button.innerHTML = `<i data-lucide="x"></i><span>Photo failed</span>`;
+  } finally {
+    refreshIcons();
+    setTimeout(() => {
+      button.disabled = false;
+      button.innerHTML = original;
+      refreshIcons();
+    }, 1400);
+  }
+}
+
+function fruitPhotoStripHtml() {
+  if (!fruitPhotoRows.length) {
+    return "";
+  }
+
+  return `
+    <div class="fruit-photo-strip" aria-label="Fruit purchase photos">
+      ${fruitPhotoRows.slice(0, 4).map((photo) => `
+        <figure>
+          <img src="${photo.url}" alt="Fruit purchase by ${photo.operator}" loading="lazy" />
+          <figcaption>${photo.operator} · ${formatDateTime(photo.createdAt)}</figcaption>
+        </figure>
+      `).join("")}
+    </div>
+  `;
+}
+
 function fruitSummaryButtonHtml() {
   return `
     <div class="checklist-summary-bar">
+      <button class="summary-copy-button camera" type="button" data-capture-fruits-photo>
+        <i data-lucide="camera"></i>
+        <span>Capture Fruit Photo</span>
+      </button>
       <button class="summary-copy-button" type="button" data-copy-fruits-summary>
         <i data-lucide="copy"></i>
         <span>Copy Fruit Orders</span>
       </button>
     </div>
+    ${fruitPhotoStripHtml()}
   `;
 }
 
@@ -1448,6 +1623,12 @@ function bindEvents() {
     const copySummaryButton = event.target.closest("[data-copy-fruits-summary]");
     if (copySummaryButton) {
       await copyFruitSummary(copySummaryButton);
+      return;
+    }
+
+    const captureFruitButton = event.target.closest("[data-capture-fruits-photo]");
+    if (captureFruitButton) {
+      await captureFruitPhoto(captureFruitButton);
       return;
     }
 

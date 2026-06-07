@@ -3452,6 +3452,9 @@ i[data-lucide] {
 .checklist-summary-bar {
   padding: 18px;
   background: #ffffff;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
 }
 
 .summary-copy-button {
@@ -3474,6 +3477,13 @@ i[data-lucide] {
     inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
+.summary-copy-button.camera {
+  border-color: #1e9a7a;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22), transparent 42%),
+    linear-gradient(135deg, #10b981, #0ea5e9 54%, #2563eb);
+}
+
 .summary-copy-button:disabled {
   opacity: 0.78;
   cursor: progress;
@@ -3483,6 +3493,38 @@ i[data-lucide] {
 .summary-copy-button svg {
   width: 22px;
   height: 22px;
+}
+
+.fruit-photo-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 12px;
+  padding: 0 18px 18px;
+  background: #ffffff;
+}
+
+.fruit-photo-strip figure {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #f8fbff;
+}
+
+.fruit-photo-strip img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.fruit-photo-strip figcaption {
+  padding: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .people-layout {
@@ -3620,6 +3662,7 @@ i[data-lucide] {
 
   .checklist-summary-bar {
     padding: 12px 8px 18px;
+    grid-template-columns: 1fr;
   }
 
   .summary-copy-button {
