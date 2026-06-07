@@ -679,7 +679,7 @@ async function submitOrderModal(form) {
     markButtonState(button, "is-checked");
     closeModal();
     await hydrateFromSupabase();
-    setView("checklist");
+    navigateToView("checklist");
   } catch (error) {
     console.info(error.message);
     markButtonState(button, "is-error");
@@ -1052,6 +1052,19 @@ function setView(viewName) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function navigateToView(viewName, options = {}) {
+  const validViewName = qsa(".view").some((view) => view.id === `${viewName}View`) ? viewName : "home";
+  const nextHash = `#${validViewName}`;
+  if (window.location.hash !== nextHash) {
+    if (options.replace) {
+      window.history.replaceState(null, "", nextHash);
+    } else {
+      window.location.hash = validViewName;
+    }
+  }
+  setView(validViewName);
+}
+
 function activeViewName() {
   return document.body.dataset.view || "home";
 }
@@ -1207,7 +1220,7 @@ function bindEvents() {
 
     const viewButton = event.target.closest("[data-view]");
     if (viewButton) {
-      setView(viewButton.dataset.view);
+      navigateToView(viewButton.dataset.view);
       return;
     }
 
@@ -1275,6 +1288,11 @@ function bindEvents() {
       closeModal();
     }
   });
+
+  window.addEventListener("hashchange", () => {
+    setView(viewFromHash());
+    refreshIcons();
+  });
 }
 
 function refreshIcons() {
@@ -1294,7 +1312,7 @@ renderPeople();
 bindEvents();
 refreshIcons();
 if (window.location.hash) {
-  setView(viewFromHash());
+  navigateToView(viewFromHash(), { replace: true });
   refreshIcons();
 }
 hydrateFromSupabase();
