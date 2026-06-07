@@ -130,6 +130,7 @@ let searchQuery = "";
 let activeModal = null;
 let inventoryByItemKey = {};
 let checklistRows = [];
+let workChecklistRows = [];
 let peopleRows = [];
 let peopleRoleFilter = "All";
 
@@ -318,6 +319,19 @@ function normalizeChecklistRow(row) {
   return normalized;
 }
 
+function normalizeWorkChecklistRow(row) {
+  return {
+    id: row.id || "",
+    work: row.work || "",
+    note: row.note || "",
+    team: row.team || "(empty)",
+    branch: row.branch || "",
+    status: row.status || "pending",
+    doneBy: row.done_by_name || "",
+    doneAt: row.done_at || "",
+  };
+}
+
 function checklistInventoryItem(row) {
   return {
     id: row.itemId,
@@ -394,6 +408,16 @@ async function hydrateFromSupabase() {
     renderDetail();
     renderHistory("#warehouseIn", warehouseIn, "in");
     renderHistory("#warehouseOut", warehouseOut, "out");
+    refreshIcons();
+  } catch (error) {
+    console.info(error.message);
+  }
+
+  try {
+    const workChecklistSelect =
+      "checklist?select=id,work,note,team,branch,status,done_by_name,done_at&order=team.asc,id.asc&limit=1000";
+    workChecklistRows = (await supabaseFetch(workChecklistSelect)).map(normalizeWorkChecklistRow);
+    renderChecklist();
     refreshIcons();
   } catch (error) {
     console.info(error.message);
@@ -836,6 +860,12 @@ function renderChecklist() {
     return;
   }
 
+  const visibleTasks = workChecklistRows
+    .map((row, index) => ({ ...row, index }))
+    .filter((row) => {
+      const targetText = `${row.id} ${row.work} ${row.note} ${row.team} ${row.branch} ${row.status}`.toLowerCase();
+      return targetText.includes(searchQuery);
+    });
   const visibleRows = checklistRows
     .map((row, index) => ({ ...row, index }))
     .filter((row) => {
@@ -843,19 +873,58 @@ function renderChecklist() {
       return targetText.includes(searchQuery);
     });
 
-  if (!visibleRows.length) {
+  if (!visibleTasks.length && !visibleRows.length) {
     target.innerHTML = `<div class="empty-state"><i data-lucide="clipboard-check"></i><span>No checklist rows</span></div>`;
     return;
   }
 
+  const taskGroups = visibleTasks.reduce((groups, row) => {
+    const key = row.team || "Checklist";
+    groups[key] = groups[key] || [];
+    groups[key].push(row);
+    return groups;
+  }, {});
   const grouped = visibleRows.reduce((groups, row) => {
-    const key = row.category || "Checklist";
+    const key = row.category ? `Item orders - ${row.category}` : "Item orders";
     groups[key] = groups[key] || [];
     groups[key].push(row);
     return groups;
   }, {});
 
-  target.innerHTML = Object.entries(grouped)
+  const taskHtml = Object.entries(taskGroups)
+    .map(
+      ([group, rows]) => `
+        <div class="checklist-group">
+          <div class="group-title">
+            <span class="dot"></span>
+            <strong>${group}</strong>
+            <span class="count">${rows.length}</span>
+          </div>
+          ${rows
+            .map(
+              (row) => `
+                <div class="checklist-row task-row ${row.status === "done" ? "done" : ""}" data-task-index="${row.index}">
+                  <span class="task-icon"><i data-lucide="clipboard-check"></i></span>
+                  <span class="product-main">
+                    <span class="product-name">${row.work}</span>
+                    <span class="product-unit">${row.note || row.branch || row.id}</span>
+                    <span class="check-meta">
+                      ${row.status === "done" ? `Done by ${row.doneBy || "U"} ${formatDateTime(row.doneAt)}` : `Pending ${row.id}`}
+                    </span>
+                  </span>
+                  <div class="row-actions task-actions">
+                    <button class="action-mini check ${row.status === "done" ? "is-checked" : ""}" type="button" data-task-action="done" aria-label="Done">${actionIcons.check}</button>
+                  </div>
+                </div>
+              `,
+            )
+            .join("")}
+        </div>
+      `,
+    )
+    .join("");
+
+  const itemHtml = Object.entries(grouped)
     .map(
       ([group, rows]) => `
         <div class="checklist-group">
@@ -890,6 +959,8 @@ function renderChecklist() {
       `,
     )
     .join("");
+
+  target.innerHTML = `${taskHtml}${itemHtml}`;
 }
 
 function renderPeople() {
@@ -1030,6 +1101,37 @@ async function completeChecklistRow(row, button) {
   }
 }
 
+async function completeWorkChecklistRow(row, button) {
+  if (!row?.id) {
+    return;
+  }
+
+  const now = new Date();
+  const local = localDateParts(now);
+  button.disabled = true;
+  markButtonState(button, "is-saving");
+
+  try {
+    await supabaseUpdate("checklist", `id=eq.${encodeURIComponent(row.id)}`, {
+      status: "done",
+      done_by_name: currentOperatorName(),
+      done_at: now.toISOString(),
+      done_date: local.date,
+      done_time: local.time,
+      updated_at: now.toISOString(),
+    });
+    markButtonState(button, "is-checked");
+    await hydrateFromSupabase();
+  } catch (error) {
+    console.info(error.message);
+    markButtonState(button, "is-error");
+  } finally {
+    setTimeout(() => {
+      button.disabled = false;
+    }, 700);
+  }
+}
+
 function viewFromHash() {
   const viewName = window.location.hash.replace("#", "");
   return qsa(".view").some((view) => view.id === `${viewName}View`) ? viewName : "home";
@@ -1050,6 +1152,16 @@ function bindEvents() {
 
     if (event.target.closest("[data-stock-in-selected]")) {
       openStockModal(items[selectedIndex], event.target.closest("[data-stock-in-selected]"), "IN");
+      return;
+    }
+
+    const taskButton = event.target.closest("[data-task-action]");
+    if (taskButton) {
+      const rowEl = taskButton.closest("[data-task-index]");
+      const row = workChecklistRows[Number(rowEl?.dataset.taskIndex)];
+      if (row && taskButton.dataset.taskAction === "done") {
+        await completeWorkChecklistRow(row, taskButton);
+      }
       return;
     }
 
