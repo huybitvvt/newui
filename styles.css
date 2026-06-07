@@ -3022,7 +3022,7 @@ i[data-lucide] {
   }
 }
 
-/* Phone action buttons: keep plus/minus/check visually centered in real mobile webviews. */
+/* Phone action buttons: keep plus/minus/cart visually centered in real mobile webviews. */
 @media (max-width: 560px) {
   .product-row {
     grid-template-columns: 46px minmax(0, 1fr) 92px;
@@ -3334,5 +3334,36 @@ i[data-lucide] {
 
   .modal-item-image {
     max-height: 260px;
+  }
+}
+
+/* Keep the item detail pane readable when it shares the screen with the item list. */
+#itemDetail .detail-grid {
+  grid-template-columns: 1fr;
+}
+
+#itemDetail .quick-card {
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+}
+
+#itemDetail .info-card,
+#itemDetail .field-list,
+#itemDetail .field,
+#itemDetail .field strong {
+  min-width: 0;
+}
+
+#itemDetail .field {
+  grid-template-columns: 110px minmax(0, 1fr);
+}
+
+#itemDetail .field strong {
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 560px) {
+  #itemDetail .field {
+    grid-template-columns: 82px minmax(0, 1fr);
   }
 }

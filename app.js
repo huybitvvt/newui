@@ -279,7 +279,7 @@ const actionIcons = {
   plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>`,
   minus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>`,
   check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>`,
-  cart: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.4 12.25a2 2 0 0 0 2 1.7h9.8a2 2 0 0 0 2-1.6l1.35-7.4H5.12" /></svg>`,
+  cart: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.2 10.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 1.9-1.4L22 8H6.1" /><path d="M9 8v8M18 8v8" /><circle cx="9" cy="20" r="1.3" /><circle cx="18" cy="20" r="1.3" /></svg>`,
 };
 
 function pad2(value) {
@@ -519,7 +519,7 @@ function rowActions() {
       <span class="qty">0</span>
       <button class="action-mini plus" type="button" aria-label="Cộng">${actionIcons.plus}</button>
       <button class="action-mini minus" type="button" aria-label="Trừ">${actionIcons.minus}</button>
-      <button class="action-mini confirm" type="button" aria-label="Mua hàng">${actionIcons.cart}</button>
+      <button class="action-mini confirm cart" type="button" aria-label="Mua hàng">${actionIcons.cart}</button>
     </div>
   `;
 }
