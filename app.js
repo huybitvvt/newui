@@ -860,69 +860,29 @@ function renderChecklist() {
     return;
   }
 
-  const visibleTasks = workChecklistRows
-    .map((row, index) => ({ ...row, index }))
-    .filter((row) => {
-      const targetText = `${row.id} ${row.work} ${row.note} ${row.team} ${row.branch} ${row.status}`.toLowerCase();
-      return targetText.includes(searchQuery);
-    });
   const visibleRows = checklistRows
     .map((row, index) => ({ ...row, index }))
     .filter((row) => {
-      const targetText = `${row.name} ${row.category} ${row.unit} ${row.status} ${row.operator}`.toLowerCase();
+      const targetText = `${row.name} ${row.category} ${row.unit} ${row.note} ${row.status} ${row.operator}`.toLowerCase();
       return targetText.includes(searchQuery);
     });
 
-  if (!visibleTasks.length && !visibleRows.length) {
-    target.innerHTML = `<div class="empty-state"><i data-lucide="clipboard-check"></i><span>No checklist rows</span></div>`;
+  if (!visibleRows.length) {
+    target.innerHTML = `
+      <div class="empty-state">
+        <i data-lucide="clipboard-check"></i>
+        <span>No item orders in Checklist</span>
+      </div>
+    `;
     return;
   }
 
-  const taskGroups = visibleTasks.reduce((groups, row) => {
-    const key = row.team || "Checklist";
-    groups[key] = groups[key] || [];
-    groups[key].push(row);
-    return groups;
-  }, {});
   const grouped = visibleRows.reduce((groups, row) => {
-    const key = row.category ? `Item orders - ${row.category}` : "Item orders";
+    const key = row.category || "Checklist";
     groups[key] = groups[key] || [];
     groups[key].push(row);
     return groups;
   }, {});
-
-  const taskHtml = Object.entries(taskGroups)
-    .map(
-      ([group, rows]) => `
-        <div class="checklist-group">
-          <div class="group-title">
-            <span class="dot"></span>
-            <strong>${group}</strong>
-            <span class="count">${rows.length}</span>
-          </div>
-          ${rows
-            .map(
-              (row) => `
-                <div class="checklist-row task-row ${row.status === "done" ? "done" : ""}" data-task-index="${row.index}">
-                  <span class="task-icon"><i data-lucide="clipboard-check"></i></span>
-                  <span class="product-main">
-                    <span class="product-name">${row.work}</span>
-                    <span class="product-unit">${row.note || row.branch || row.id}</span>
-                    <span class="check-meta">
-                      ${row.status === "done" ? `Done by ${row.doneBy || "U"} ${formatDateTime(row.doneAt)}` : `Pending ${row.id}`}
-                    </span>
-                  </span>
-                  <div class="row-actions task-actions">
-                    <button class="action-mini check ${row.status === "done" ? "is-checked" : ""}" type="button" data-task-action="done" aria-label="Done">${actionIcons.check}</button>
-                  </div>
-                </div>
-              `,
-            )
-            .join("")}
-        </div>
-      `,
-    )
-    .join("");
 
   const itemHtml = Object.entries(grouped)
     .map(
@@ -936,13 +896,15 @@ function renderChecklist() {
           ${rows
             .map(
               (row) => `
-                <div class="checklist-row ${row.status === "done" ? "done" : ""}" data-check-index="${row.index}">
+                <div class="product-row checklist-row ${row.status === "done" ? "done" : ""}" data-check-index="${row.index}">
                   <img class="thumb" src="${row.img}" alt="${row.name}" loading="lazy" ${thumbFallback} />
                   <span class="product-main">
                     <span class="product-name">${row.name}${row.price ? `-$${row.price}` : ""}</span>
-                    <span class="product-unit">${row.unit || row.note || "ORDER"}</span>
+                    <span class="product-unit">${row.unit || "ORDER"}</span>
                     <span class="check-meta">
                       ${row.status === "done" ? `Done by ${row.doneBy || row.operator || "U"} ${formatDateTime(row.doneAt)}` : `By ${row.operator} ${formatDateTime(row.checkedAt)}`}
+                      ${row.quantity ? ` · Qty ${row.quantity}` : ""}
+                      ${row.note ? ` · ${row.note}` : ""}
                     </span>
                   </span>
                   <div class="row-actions">
@@ -960,7 +922,7 @@ function renderChecklist() {
     )
     .join("");
 
-  target.innerHTML = `${taskHtml}${itemHtml}`;
+  target.innerHTML = itemHtml;
 }
 
 function renderPeople() {
