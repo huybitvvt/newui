@@ -854,6 +854,164 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function fruitSummaryItems() {
+  return items
+    .filter((item) => isFruitItem(item))
+    .map((item) => ({
+      name: item.name,
+      unit: item.unit || "",
+      stock: Number(item.stock || 0),
+      price: Number(item.price || 0),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function fruitSummaryText() {
+  const rows = fruitSummaryItems();
+  const lines = [
+    "Fruits - JT Summary",
+    `Generated: ${new Intl.DateTimeFormat("en-GB", { dateStyle: "short", timeStyle: "short" }).format(new Date())}`,
+    "",
+    ...rows.map((row) => `${row.name}${row.price ? `-$${row.price}` : ""} | ${row.unit || "UNIT"} | Stock: ${row.stock}`),
+  ];
+
+  return lines.join("\n");
+}
+
+function wrapCanvasText(context, text, maxWidth) {
+  const words = String(text || "").split(/\s+/);
+  const lines = [];
+  let current = "";
+
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (context.measureText(next).width <= maxWidth) {
+      current = next;
+      return;
+    }
+    if (current) {
+      lines.push(current);
+    }
+    current = word;
+  });
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines;
+}
+
+async function fruitSummaryImageBlob() {
+  const rows = fruitSummaryItems();
+  const width = 960;
+  const padding = 40;
+  const rowHeight = 58;
+  const height = Math.max(260, 148 + rows.length * rowHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+
+  context.fillStyle = "#f4f8fb";
+  context.fillRect(0, 0, width, height);
+  context.fillStyle = "#ffffff";
+  context.strokeStyle = "#cfdbe7";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(18, 18, width - 36, height - 36, 12);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "#0f172a";
+  context.font = "700 34px Arial, sans-serif";
+  context.fillText("Fruits - JT Summary", padding, 74);
+  context.fillStyle = "#64748b";
+  context.font = "18px Arial, sans-serif";
+  context.fillText(new Intl.DateTimeFormat("en-GB", { dateStyle: "short", timeStyle: "short" }).format(new Date()), padding, 108);
+
+  context.fillStyle = "#e8f4fb";
+  context.fillRect(padding, 130, width - padding * 2, 40);
+  context.fillStyle = "#1677b9";
+  context.font = "700 18px Arial, sans-serif";
+  context.fillText("Item", padding + 16, 156);
+  context.fillText("Unit", width - 360, 156);
+  context.fillText("Stock", width - 120, 156);
+
+  rows.forEach((row, index) => {
+    const y = 170 + index * rowHeight;
+    context.fillStyle = index % 2 ? "#ffffff" : "#fbfdff";
+    context.fillRect(padding, y, width - padding * 2, rowHeight);
+    context.strokeStyle = "#e2e8f0";
+    context.beginPath();
+    context.moveTo(padding, y + rowHeight);
+    context.lineTo(width - padding, y + rowHeight);
+    context.stroke();
+
+    context.fillStyle = "#0f172a";
+    context.font = "700 20px Arial, sans-serif";
+    const itemLines = wrapCanvasText(context, `${row.name}${row.price ? `-$${row.price}` : ""}`, width - 460);
+    context.fillText(itemLines[0] || row.name, padding + 16, y + 35);
+    context.fillStyle = "#334155";
+    context.font = "18px Arial, sans-serif";
+    context.fillText(row.unit || "UNIT", width - 360, y + 35);
+    context.fillStyle = "#1677b9";
+    context.font = "700 22px Arial, sans-serif";
+    context.fillText(String(row.stock), width - 110, y + 36);
+  });
+
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+}
+
+async function copyFruitSummary(button) {
+  if (!button) {
+    return;
+  }
+
+  const original = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = `<i data-lucide="loader-2"></i><span>Copying...</span>`;
+  refreshIcons();
+
+  try {
+    const blob = await fruitSummaryImageBlob();
+    if (blob && navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      button.innerHTML = `<i data-lucide="check"></i><span>Copied image</span>`;
+    } else {
+      await navigator.clipboard.writeText(fruitSummaryText());
+      button.innerHTML = `<i data-lucide="check"></i><span>Copied text</span>`;
+    }
+  } catch (error) {
+    console.info(error.message);
+    try {
+      await navigator.clipboard.writeText(fruitSummaryText());
+      button.innerHTML = `<i data-lucide="check"></i><span>Copied text</span>`;
+    } catch (fallbackError) {
+      console.info(fallbackError.message);
+      button.innerHTML = `<i data-lucide="x"></i><span>Copy failed</span>`;
+    }
+  } finally {
+    refreshIcons();
+    setTimeout(() => {
+      button.disabled = false;
+      button.innerHTML = original;
+      refreshIcons();
+    }, 1400);
+  }
+}
+
+function fruitSummaryButtonHtml() {
+  return `
+    <div class="checklist-summary-bar">
+      <button class="summary-copy-button" type="button" data-copy-fruits-summary>
+        <i data-lucide="copy"></i>
+        <span>Copy Fruits Summary</span>
+      </button>
+    </div>
+  `;
+}
+
 function renderChecklist() {
   const target = qs("#checklistList");
   if (!target) {
@@ -873,6 +1031,7 @@ function renderChecklist() {
         <i data-lucide="clipboard-check"></i>
         <span>No item orders in Checklist</span>
       </div>
+      ${fruitSummaryButtonHtml()}
     `;
     return;
   }
@@ -922,7 +1081,7 @@ function renderChecklist() {
     )
     .join("");
 
-  target.innerHTML = itemHtml;
+  target.innerHTML = `${itemHtml}${fruitSummaryButtonHtml()}`;
 }
 
 function renderPeople() {
@@ -1127,6 +1286,12 @@ function bindEvents() {
 
     if (event.target.closest("[data-stock-in-selected]")) {
       openStockModal(items[selectedIndex], event.target.closest("[data-stock-in-selected]"), "IN");
+      return;
+    }
+
+    const copySummaryButton = event.target.closest("[data-copy-fruits-summary]");
+    if (copySummaryButton) {
+      await copyFruitSummary(copySummaryButton);
       return;
     }
 
