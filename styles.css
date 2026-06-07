@@ -3418,6 +3418,26 @@ i[data-lucide] {
   line-height: 1.25;
 }
 
+.task-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: #eef7fc;
+  color: var(--blue);
+}
+
+.task-icon i {
+  width: 24px;
+  height: 24px;
+}
+
+.task-actions {
+  grid-template-columns: 32px;
+  width: auto;
+}
+
 .people-layout {
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
