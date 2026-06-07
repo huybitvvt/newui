@@ -29,24 +29,28 @@ const moduleMeta = {
     title: "Warehouse",
     subtitle: "IN / OUT movement log",
     icon: "warehouse",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/2897/2897818.png",
   },
   warehouse: {
     id: "warehouse",
     title: "Warehouse",
     subtitle: "IN / OUT movement log",
     icon: "warehouse",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/2897/2897818.png",
   },
   people: {
     id: "people",
     title: "People",
     subtitle: "Staff and operators",
     icon: "users",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/1489/1489404.png",
   },
   "setup work": {
     id: "setup",
     title: "Setup Work",
     subtitle: "Workflow settings",
     icon: "settings-2",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/2049/2049831.png",
   },
 };
 
@@ -70,21 +74,21 @@ let homeItems = [
     title: "Warehouse",
     subtitle: "IN / OUT movement log",
     icon: "warehouse",
-    iconUrl: "",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/2897/2897818.png",
   },
   {
     id: "people",
     title: "People",
     subtitle: "Staff and operators",
     icon: "users",
-    iconUrl: "",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/1489/1489404.png",
   },
   {
     id: "setup",
     title: "Setup Work",
     subtitle: "Workflow settings",
     icon: "settings-2",
-    iconUrl: "",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/2049/2049831.png",
   },
 ];
 
@@ -265,11 +269,11 @@ function normalizeMenuRow(row) {
     return null;
   }
   const iconValue = String(row.icon || "");
-  const isLocalImageIcon = /^(assets\/|\.\/|\/).+\.(svg|png|jpe?g|webp)(\?.*)?$/i.test(iconValue);
+  const isImageIcon = /^(https?:\/\/|assets\/|\.\/|\/).+\.(svg|png|jpe?g|webp)(\?.*)?$/i.test(iconValue);
 
   return {
     ...meta,
-    iconUrl: isLocalImageIcon ? iconValue : meta.iconUrl || "",
+    iconUrl: meta.id === "checklist" ? "" : isImageIcon ? iconValue : meta.iconUrl || "",
   };
 }
 
@@ -480,7 +484,7 @@ async function hydrateFromSupabase() {
               title: "Checklist",
               subtitle: "Orders waiting for check",
               icon: "clipboard-check",
-              iconUrl: "https://cdn-icons-png.flaticon.com/128/681/681662.png",
+              iconUrl: "",
             },
             ...nextMenu.slice(1),
           ];
