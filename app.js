@@ -114,6 +114,7 @@ let warehouseOut = [
 
 let selectedIndex = 0;
 let searchQuery = "";
+let activeModal = null;
 
 const qs = (selector) => document.querySelector(selector);
 const qsa = (selector) => [...document.querySelectorAll(selector)];
@@ -174,9 +175,11 @@ function normalizeMenuRow(row) {
 }
 
 function normalizeItemRow(row) {
+  const category = row.item_categories || {};
   return {
     id: row.id || "",
     name: row.name || "Unnamed item",
+    category: category.name || "Fruits - JT",
     price: Number(row.price || 0),
     unit: row.unit || "",
     barcode: row.barcode_1 || "",
@@ -219,7 +222,7 @@ async function hydrateFromSupabase() {
   }
 
   try {
-    const itemRows = await supabaseFetch("items?select=id,name,unit,price,barcode_1,image_url,active&active=eq.true&order=name.asc");
+    const itemRows = await supabaseFetch("items?select=id,name,unit,price,barcode_1,image_url,active,item_categories(name)&active=eq.true&order=name.asc");
     if (itemRows.length) {
       items = itemRows.map(normalizeItemRow);
       selectedIndex = 0;
@@ -276,6 +279,7 @@ const actionIcons = {
   plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>`,
   minus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>`,
   check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>`,
+  cart: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.4 12.25a2 2 0 0 0 2 1.7h9.8a2 2 0 0 0 2-1.6l1.35-7.4H5.12" /></svg>`,
 };
 
 function pad2(value) {
@@ -293,7 +297,11 @@ function currentOperatorName() {
   return qs(".avatar")?.textContent?.trim() || "U";
 }
 
-function checkPayloadForItem(item) {
+function isFruitItem(item) {
+  return `${item.category || ""} ${item.unit || ""}`.toLowerCase().includes("fruit");
+}
+
+function checkedItemBasePayload(item) {
   const now = new Date();
   const local = localDateParts(now);
   const payload = {
@@ -312,24 +320,190 @@ function checkPayloadForItem(item) {
   return payload;
 }
 
-async function submitItemCheck(button, item) {
-  if (!item || button.disabled) {
-    return;
+function orderPayloadForItem(item, values) {
+  const payload = {
+    ...checkedItemBasePayload(item),
+    check_type: "ORDER",
+    note: values.note || null,
+  };
+
+  if (isFruitItem(item)) {
+    payload.quantity = Number(values.quantity || 0);
   }
 
-  button.disabled = true;
-  button.classList.remove("is-checked", "is-error");
-  button.classList.add("is-saving");
+  return payload;
+}
 
+function itemRefPayload(item) {
+  return uuidPattern.test(item?.id || "") ? { item_id: item.id } : {};
+}
+
+function closeModal() {
+  activeModal = null;
+  qs("#modalRoot")?.replaceChildren();
+  document.body.classList.remove("modal-open");
+}
+
+function adjustModalQuantity(delta) {
+  const input = qs("#modalQuantity");
+  if (!input) {
+    return;
+  }
+  const next = Math.max(0, Number(input.value || 0) + delta);
+  input.value = String(next);
+}
+
+function modalShell({ title, body, saveLabel = "Save" }) {
+  qs("#modalRoot").innerHTML = `
+    <div class="modal-backdrop" role="presentation">
+      <form class="modal-panel" id="actionModal" aria-label="${title}">
+        <div class="modal-head">
+          <button class="modal-close" type="button" data-modal-close aria-label="Close">×</button>
+          <h2>${title}</h2>
+          <div class="modal-actions">
+            <button class="modal-secondary" type="button" data-modal-close>Cancel</button>
+            <button class="modal-primary" type="submit">${saveLabel}</button>
+          </div>
+        </div>
+        <div class="modal-body">${body}</div>
+      </form>
+    </div>
+  `;
+  document.body.classList.add("modal-open");
+}
+
+function openOrderModal(item, button) {
+  if (!item) {
+    return;
+  }
+  activeModal = { type: "order", item, button };
+  const quantityField = isFruitItem(item)
+    ? `
+      <label class="form-field">
+        <span>Quantity</span>
+        <span class="stepper">
+          <input id="modalQuantity" name="quantity" type="number" min="0" step="1" value="0" inputmode="numeric" />
+          <button type="button" data-step="-1">${actionIcons.minus}</button>
+          <button type="button" data-step="1">${actionIcons.plus}</button>
+        </span>
+      </label>
+    `
+    : "";
+
+  modalShell({
+    title: item.name,
+    body: `
+      <label class="form-field">
+        <span>ItemID</span>
+        <select name="item" disabled><option>${item.name}</option></select>
+      </label>
+      <label class="form-field">
+        <span>Type</span>
+        <input name="type" type="text" value="ORDER" disabled />
+      </label>
+      ${quantityField}
+      <label class="form-field">
+        <span>Note</span>
+        <textarea name="note" rows="3"></textarea>
+      </label>
+    `,
+  });
+}
+
+function openStockInModal(item, button) {
+  if (!item) {
+    return;
+  }
+  activeModal = { type: "stock-in", item, button };
+  modalShell({
+    title: item.name,
+    body: `
+      <label class="form-field">
+        <span>ItemID</span>
+        <select name="item" disabled><option>${item.name}</option></select>
+      </label>
+      <label class="form-field image-field">
+        <span>Image</span>
+        <img class="modal-item-image" src="${item.img}" alt="${item.name}" loading="lazy" ${thumbFallback} />
+      </label>
+      <label class="form-field">
+        <span>Quantity</span>
+        <span class="stepper">
+          <input id="modalQuantity" name="quantity" type="number" min="0" step="1" value="0" inputmode="numeric" />
+          <button type="button" data-step="-1">${actionIcons.minus}</button>
+          <button type="button" data-step="1">${actionIcons.plus}</button>
+        </span>
+      </label>
+      <label class="form-field">
+        <span>Type</span>
+        <input name="type" type="text" value="IN" disabled />
+      </label>
+      <label class="form-field">
+        <span>Note</span>
+        <textarea name="note" rows="3"></textarea>
+      </label>
+    `,
+  });
+}
+
+function markButtonState(button, state) {
+  if (!button) {
+    return;
+  }
+  button.classList.remove("is-saving", "is-checked", "is-error");
+  if (state) {
+    button.classList.add(state);
+  }
+}
+
+async function submitOrderModal(form) {
+  const { item, button } = activeModal;
+  const formData = new FormData(form);
+  button.disabled = true;
+  markButtonState(button, "is-saving");
   try {
-    await supabaseInsert("check", checkPayloadForItem(item));
-    button.classList.remove("is-saving");
-    button.classList.add("is-checked");
+    await supabaseInsert("check", orderPayloadForItem(item, {
+      quantity: formData.get("quantity"),
+      note: formData.get("note")?.toString().trim(),
+    }));
+    markButtonState(button, "is-checked");
+    closeModal();
   } catch (error) {
     console.info(error.message);
-    button.classList.remove("is-saving");
-    button.classList.add("is-error");
-    setTimeout(() => button.classList.remove("is-error"), 1600);
+    markButtonState(button, "is-error");
+  } finally {
+    setTimeout(() => {
+      button.disabled = false;
+    }, 700);
+  }
+}
+
+async function submitStockInModal(form) {
+  const { item, button } = activeModal;
+  const formData = new FormData(form);
+  const quantity = Math.max(0, Number(formData.get("quantity") || 0));
+  const note = formData.get("note")?.toString().trim() || "Warehouse receive";
+  button.disabled = true;
+  markButtonState(button, "is-saving");
+
+  try {
+    const [historyRow] = await supabaseInsert("warehouse_history", {
+      ...itemRefPayload(item),
+      movement_type: "IN",
+      quantity,
+      note,
+    });
+    await supabaseInsert("stock_log", {
+      ...itemRefPayload(item),
+      warehouse_history_id: historyRow?.id || null,
+      quantity_change: quantity,
+    });
+    markButtonState(button, "is-checked");
+    closeModal();
+    await hydrateFromSupabase();
+  } catch (error) {
+    console.info(error.message);
+    markButtonState(button, "is-error");
   } finally {
     setTimeout(() => {
       button.disabled = false;
@@ -343,7 +517,7 @@ function rowActions() {
       <span class="qty">0</span>
       <button class="action-mini plus" type="button" aria-label="Cộng">${actionIcons.plus}</button>
       <button class="action-mini minus" type="button" aria-label="Trừ">${actionIcons.minus}</button>
-      <button class="action-mini confirm" type="button" aria-label="Xác nhận">${actionIcons.check}</button>
+      <button class="action-mini confirm" type="button" aria-label="Mua hàng">${actionIcons.cart}</button>
     </div>
   `;
 }
@@ -380,7 +554,7 @@ function renderDetail() {
     <div class="detail-top">
       <h2>Thông tin chi tiết của item</h2>
       <div class="toolbar">
-        <button class="primary-button" type="button"><i data-lucide="plus"></i><span>IN ORDER</span></button>
+        <button class="primary-button" type="button" data-stock-in-selected><i data-lucide="plus"></i><span>IN ORDER</span></button>
         <button class="icon-button" type="button" aria-label="Close"><i data-lucide="x"></i></button>
       </div>
     </div>
@@ -483,12 +657,32 @@ function viewFromHash() {
 
 function bindEvents() {
   document.addEventListener("click", async (event) => {
+    if (event.target.closest("[data-modal-close]")) {
+      closeModal();
+      return;
+    }
+
+    const stepButton = event.target.closest("[data-step]");
+    if (stepButton) {
+      adjustModalQuantity(Number(stepButton.dataset.step || 0));
+      return;
+    }
+
+    if (event.target.closest("[data-stock-in-selected]")) {
+      openStockInModal(items[selectedIndex], event.target.closest("[data-stock-in-selected]"));
+      return;
+    }
+
     const actionButton = event.target.closest(".action-mini");
     if (actionButton) {
+      const product = actionButton.closest("[data-index]");
+      const item = items[Number(product?.dataset.index)];
+      if (actionButton.classList.contains("plus")) {
+        openStockInModal(item, actionButton);
+        return;
+      }
       if (actionButton.classList.contains("confirm")) {
-        const product = actionButton.closest("[data-index]");
-        const item = items[Number(product?.dataset.index)];
-        await submitItemCheck(actionButton, item);
+        openOrderModal(item, actionButton);
       }
       return;
     }
@@ -534,6 +728,26 @@ function bindEvents() {
     searchQuery = event.target.value.trim().toLowerCase();
     renderProducts();
     refreshIcons();
+  });
+
+  document.addEventListener("submit", async (event) => {
+    if (event.target.id !== "actionModal") {
+      return;
+    }
+    event.preventDefault();
+    if (activeModal?.type === "order") {
+      await submitOrderModal(event.target);
+      return;
+    }
+    if (activeModal?.type === "stock-in") {
+      await submitStockInModal(event.target);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && activeModal) {
+      closeModal();
+    }
   });
 }
 

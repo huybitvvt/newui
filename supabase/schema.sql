@@ -85,6 +85,9 @@ create table if not exists public."check" (
   item_id uuid references public.items(id) on delete set null,
   item_name text not null,
   item_image_url text,
+  quantity integer,
+  note text,
+  check_type text not null default 'ORDER',
   operator_id uuid references public.people(id) on delete set null,
   operator_name text not null default 'U',
   checked_at timestamptz not null default now(),
@@ -94,6 +97,9 @@ create table if not exists public."check" (
 );
 
 alter table public."check" add column if not exists item_image_url text;
+alter table public."check" add column if not exists quantity integer;
+alter table public."check" add column if not exists note text;
+alter table public."check" add column if not exists check_type text not null default 'ORDER';
 
 create table if not exists public.setup_work (
   id uuid primary key default gen_random_uuid(),
@@ -214,6 +220,8 @@ grant select on
   public.setup_work
 to anon, authenticated;
 grant insert on public."check" to anon, authenticated;
+grant insert on public.warehouse_history to anon, authenticated;
+grant insert on public.stock_log to anon, authenticated;
 
 alter table public.menu enable row level security;
 alter table public.people enable row level security;
@@ -229,7 +237,9 @@ drop policy if exists "public read people" on public.people;
 drop policy if exists "public read item categories" on public.item_categories;
 drop policy if exists "public read items" on public.items;
 drop policy if exists "public read warehouse history" on public.warehouse_history;
+drop policy if exists "public insert warehouse history" on public.warehouse_history;
 drop policy if exists "public read stock log" on public.stock_log;
+drop policy if exists "public insert stock log" on public.stock_log;
 drop policy if exists "public read check" on public."check";
 drop policy if exists "public insert check" on public."check";
 drop policy if exists "public read setup work" on public.setup_work;
@@ -239,7 +249,9 @@ create policy "public read people" on public.people for select using (true);
 create policy "public read item categories" on public.item_categories for select using (true);
 create policy "public read items" on public.items for select using (true);
 create policy "public read warehouse history" on public.warehouse_history for select using (true);
+create policy "public insert warehouse history" on public.warehouse_history for insert with check (true);
 create policy "public read stock log" on public.stock_log for select using (true);
+create policy "public insert stock log" on public.stock_log for insert with check (true);
 create policy "public read check" on public."check" for select using (true);
 create policy "public insert check" on public."check" for insert with check (true);
 create policy "public read setup work" on public.setup_work for select using (true);
