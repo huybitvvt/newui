@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#ffffff" />
     <title>Mississauga Inventory UI</title>
     <link rel="preconnect" href="https://images.unsplash.com" />
-    <link rel="stylesheet" href="styles.css?v=inventory-count-4f18b2c" />
+    <link rel="stylesheet" href="styles.css?v=checklist-people-9e71a03" />
   </head>
   <body>
     <div class="app-shell">
@@ -34,6 +34,9 @@
         </button>
         <button class="rail-button" type="button" data-view="items" aria-label="item">
           <i data-lucide="package-open"></i>
+        </button>
+        <button class="rail-button" type="button" data-view="checklist" aria-label="Checklist">
+          <i data-lucide="clipboard-check"></i>
         </button>
         <button class="rail-button" type="button" data-view="warehouse" aria-label="Warehouse">
           <i data-lucide="warehouse"></i>
@@ -95,6 +98,35 @@
           </div>
         </section>
 
+        <section class="view" id="checklistView" aria-labelledby="checklistTitle">
+          <div class="page-head">
+            <div>
+              <div class="breadcrumbs">
+                <button type="button" data-view="home">Home</button>
+                <i data-lucide="chevron-right"></i>
+                <span>Checklist</span>
+              </div>
+              <h1 id="checklistTitle">Checklist</h1>
+            </div>
+            <div class="toolbar">
+              <button class="primary-button" type="button" data-view="items">
+                <i data-lucide="plus"></i>
+                <span>Add</span>
+              </button>
+              <button class="icon-button" type="button" aria-label="Filter">
+                <i data-lucide="list-filter"></i>
+              </button>
+              <button class="icon-button" type="button" aria-label="Select">
+                <i data-lucide="square-check"></i>
+              </button>
+            </div>
+          </div>
+
+          <section class="checklist-panel" aria-label="Checklist rows">
+            <div id="checklistList"></div>
+          </section>
+        </section>
+
         <section class="view" id="warehouseView" aria-labelledby="warehouseTitle">
           <div class="page-head">
             <div>
@@ -136,10 +168,33 @@
           </div>
         </section>
 
-        <section class="view placeholder-view" id="peopleView">
-          <div class="placeholder-card">
-            <i data-lucide="users"></i>
-            <h1>People</h1>
+        <section class="view" id="peopleView" aria-labelledby="peopleTitle">
+          <div class="page-head">
+            <div>
+              <div class="breadcrumbs">
+                <button type="button" data-view="home">Home</button>
+                <i data-lucide="chevron-right"></i>
+                <span>People</span>
+              </div>
+              <h1 id="peopleTitle">People</h1>
+            </div>
+            <div class="toolbar">
+              <button class="primary-button" type="button">
+                <i data-lucide="plus"></i>
+                <span>Add</span>
+              </button>
+              <button class="icon-button" type="button" aria-label="Filter">
+                <i data-lucide="list-filter"></i>
+              </button>
+              <button class="icon-button" type="button" aria-label="Select">
+                <i data-lucide="square-check"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="people-layout">
+            <aside class="people-filter" id="peopleFilter" aria-label="People filters"></aside>
+            <section class="people-panel" id="peopleList" aria-label="People list"></section>
           </div>
         </section>
         <section class="view placeholder-view" id="setupView">
@@ -153,6 +208,6 @@
     <div id="modalRoot"></div>
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    <script src="app.js?v=inventory-count-4f18b2c"></script>
+    <script src="app.js?v=checklist-people-9e71a03"></script>
   </body>
 </html>

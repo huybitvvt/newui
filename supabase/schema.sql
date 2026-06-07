@@ -1,5 +1,5 @@
 -- Supabase schema for the cleaned Mississauga inventory app.
--- Removed by client request: ipad, equipment, checklist, checklist_kpi,
+-- Removed by client request: ipad, equipment, checklist_kpi,
 -- dashboard_work, appdata, unitstable, cashflow.
 
 create extension if not exists pgcrypto;
@@ -35,9 +35,12 @@ create table if not exists public.people (
   role text,
   phone text,
   email text,
+  image_url text,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+alter table public.people add column if not exists image_url text;
 
 create table if not exists public.item_categories (
   id uuid primary key default gen_random_uuid(),
@@ -88,11 +91,17 @@ create table if not exists public."check" (
   quantity integer,
   note text,
   check_type text not null default 'ORDER',
+  status text not null default 'pending' check (status in ('pending', 'done')),
   operator_id uuid references public.people(id) on delete set null,
   operator_name text not null default 'U',
   checked_at timestamptz not null default now(),
   checked_date date not null default current_date,
   checked_time time not null default localtime(0),
+  done_by_id uuid references public.people(id) on delete set null,
+  done_by_name text,
+  done_at timestamptz,
+  done_date date,
+  done_time time,
   created_at timestamptz not null default now()
 );
 
@@ -100,6 +109,12 @@ alter table public."check" add column if not exists item_image_url text;
 alter table public."check" add column if not exists quantity integer;
 alter table public."check" add column if not exists note text;
 alter table public."check" add column if not exists check_type text not null default 'ORDER';
+alter table public."check" add column if not exists status text not null default 'pending';
+alter table public."check" add column if not exists done_by_id uuid references public.people(id) on delete set null;
+alter table public."check" add column if not exists done_by_name text;
+alter table public."check" add column if not exists done_at timestamptz;
+alter table public."check" add column if not exists done_date date;
+alter table public."check" add column if not exists done_time time;
 
 create table if not exists public.setup_work (
   id uuid primary key default gen_random_uuid(),
@@ -114,7 +129,6 @@ delete from public.menu
 where lower(regexp_replace(menu, '[^a-z0-9]+', '', 'g')) in (
   'ipad',
   'equipment',
-  'checklist',
   'checklistkpi',
   'dashboardwork',
   'appdata',
@@ -125,6 +139,7 @@ where lower(regexp_replace(menu, '[^a-z0-9]+', '', 'g')) in (
 insert into public.menu (id, menu, catalog, icon, permission)
 values
   ('329267b2', 'items', 1, 'assets/items-icon.svg', 'CEO , Staff'),
+  ('e3490d59', 'Checklist', 1, 'https://cdn-icons-png.flaticon.com/128/681/681662.png', 'CEO , Staff'),
   ('e3490d60', 'Warehouse', 1, 'https://cdn-icons-png.flaticon.com/128/2897/2897818.png', 'CEO , Staff'),
   ('e3490d58', 'People', 1, 'https://cdn-icons-png.flaticon.com/128/1489/1489404.png', 'CEO'),
   ('e3490d69', 'Setup Work', 1, 'https://cdn-icons-png.flaticon.com/128/2049/2049831.png', 'CEO')
@@ -134,14 +149,15 @@ on conflict (id) do update set
   icon = excluded.icon,
   permission = excluded.permission;
 
-insert into public.people (id, name, role, active)
+insert into public.people (id, name, role, image_url, active)
 values
-  ('11111111-1111-1111-1111-111111111111', 'Ammar', 'Staff', true),
-  ('22222222-2222-2222-2222-222222222222', 'Franco', 'Staff', true),
-  ('33333333-3333-3333-3333-333333333333', 'Store', 'Store', true)
+  ('11111111-1111-1111-1111-111111111111', 'Ammar', 'Staff', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80', true),
+  ('22222222-2222-2222-2222-222222222222', 'Franco', 'CEO', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=120&h=120&q=80', true),
+  ('33333333-3333-3333-3333-333333333333', 'Store', 'Store', 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=120&h=120&q=80', true)
 on conflict (id) do update set
   name = excluded.name,
   role = excluded.role,
+  image_url = excluded.image_url,
   active = excluded.active;
 
 insert into public.item_categories (id, name, code)
@@ -220,6 +236,7 @@ grant select on
   public.setup_work
 to anon, authenticated;
 grant insert on public."check" to anon, authenticated;
+grant update on public."check" to anon, authenticated;
 grant insert on public.warehouse_history to anon, authenticated;
 grant insert on public.stock_log to anon, authenticated;
 
@@ -242,6 +259,7 @@ drop policy if exists "public read stock log" on public.stock_log;
 drop policy if exists "public insert stock log" on public.stock_log;
 drop policy if exists "public read check" on public."check";
 drop policy if exists "public insert check" on public."check";
+drop policy if exists "public update check" on public."check";
 drop policy if exists "public read setup work" on public.setup_work;
 
 create policy "public read menu" on public.menu for select using (true);
@@ -254,4 +272,5 @@ create policy "public read stock log" on public.stock_log for select using (true
 create policy "public insert stock log" on public.stock_log for insert with check (true);
 create policy "public read check" on public."check" for select using (true);
 create policy "public insert check" on public."check" for insert with check (true);
+create policy "public update check" on public."check" for update using (true) with check (true);
 create policy "public read setup work" on public.setup_work for select using (true);

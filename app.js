@@ -14,6 +14,12 @@ const moduleMeta = {
     subtitle: "Inventory list",
     icon: "package-open",
   },
+  checklist: {
+    id: "checklist",
+    title: "Checklist",
+    subtitle: "Orders waiting for check",
+    icon: "clipboard-check",
+  },
   "warehouse history": {
     id: "warehouse",
     title: "Warehouse",
@@ -47,6 +53,13 @@ let homeItems = [
     subtitle: "Inventory list",
     icon: "package-open",
     iconUrl: "assets/items-icon.svg",
+  },
+  {
+    id: "checklist",
+    title: "Checklist",
+    subtitle: "Orders waiting for check",
+    icon: "clipboard-check",
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/681/681662.png",
   },
   {
     id: "warehouse",
@@ -116,6 +129,9 @@ let selectedIndex = 0;
 let searchQuery = "";
 let activeModal = null;
 let inventoryByItemKey = {};
+let checklistRows = [];
+let peopleRows = [];
+let peopleRoleFilter = "All";
 
 const qs = (selector) => document.querySelector(selector);
 const qsa = (selector) => [...document.querySelectorAll(selector)];
@@ -157,6 +173,32 @@ async function supabaseInsert(table, payload) {
       message = await response.text();
     }
     throw new Error(`Supabase insert ${table} failed: ${message}`);
+  }
+
+  return response.json();
+}
+
+async function supabaseUpdate(table, filter, payload) {
+  const response = await fetch(`${SUPABASE_REST_URL}/${table}?${filter}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let message = `${response.status}`;
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch {
+      message = await response.text();
+    }
+    throw new Error(`Supabase update ${table} failed: ${message}`);
   }
 
   return response.json();
@@ -252,12 +294,72 @@ function normalizeWarehouseRow(row) {
   };
 }
 
+function normalizeChecklistRow(row) {
+  const item = row.items || {};
+  const category = item.item_categories || {};
+  const normalized = {
+    id: row.id || "",
+    itemId: row.item_id || "",
+    name: row.item_name || item.name || "Checklist item",
+    category: category.name || "Checklist",
+    unit: item.unit || "",
+    price: Number(item.price || 0),
+    img: row.item_image_url || item.image_url || FALLBACK_THUMB,
+    quantity: Number(row.quantity || 0),
+    note: row.note || "",
+    status: row.status || "pending",
+    operator: row.operator_name || "U",
+    checkedAt: row.checked_at || "",
+    doneBy: row.done_by_name || "",
+    doneAt: row.done_at || "",
+  };
+
+  normalized.stock = inventoryByItemKey[itemInventoryKey({ id: normalized.itemId, name: normalized.name })] || 0;
+  return normalized;
+}
+
+function checklistInventoryItem(row) {
+  return {
+    id: row.itemId,
+    name: row.name,
+    category: row.category,
+    unit: row.unit,
+    price: row.price,
+    img: row.img,
+    stock: row.stock,
+  };
+}
+
+function normalizePersonRow(row) {
+  return {
+    id: row.id || "",
+    name: row.name || "Unnamed",
+    role: row.role || "(empty)",
+    phone: row.phone || "",
+    email: row.email || "",
+    active: row.active !== false,
+    img: row.image_url || "",
+  };
+}
+
 async function hydrateFromSupabase() {
   try {
     const menuRows = await supabaseFetch("menu?select=id,menu,catalog,icon,permission&order=catalog.asc");
     const nextMenu = menuRows.map(normalizeMenuRow).filter(Boolean);
     if (nextMenu.length) {
-      homeItems = nextMenu;
+      homeItems = nextMenu.some((item) => item.id === "checklist")
+        ? nextMenu
+        : [
+            nextMenu[0],
+            {
+              id: "checklist",
+              title: "Checklist",
+              subtitle: "Orders waiting for check",
+              icon: "clipboard-check",
+              iconUrl: "https://cdn-icons-png.flaticon.com/128/681/681662.png",
+            },
+            ...nextMenu.slice(1),
+          ];
       renderHome();
     }
   } catch (error) {
@@ -295,6 +397,42 @@ async function hydrateFromSupabase() {
     refreshIcons();
   } catch (error) {
     console.info(error.message);
+  }
+
+  try {
+    const checklistSelect =
+      "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,status,operator_name,checked_at,done_by_name,done_at,items(name,unit,price,image_url,item_categories(name))&order=created_at.desc&limit=1000";
+    checklistRows = (await supabaseFetch(checklistSelect)).map(normalizeChecklistRow);
+    renderChecklist();
+    refreshIcons();
+  } catch (error) {
+    console.info(error.message);
+    try {
+      const fallbackSelect =
+        "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,operator_name,checked_at,items(name,unit,price,image_url,item_categories(name))&order=created_at.desc&limit=1000";
+      checklistRows = (await supabaseFetch(fallbackSelect)).map(normalizeChecklistRow);
+      renderChecklist();
+      refreshIcons();
+    } catch (fallbackError) {
+      console.info(fallbackError.message);
+    }
+  }
+
+  try {
+    const peopleSelect = "people?select=id,name,role,phone,email,active,image_url&active=eq.true&order=role.asc,name.asc";
+    peopleRows = (await supabaseFetch(peopleSelect)).map(normalizePersonRow);
+    renderPeople();
+    refreshIcons();
+  } catch (error) {
+    console.info(error.message);
+    try {
+      const fallbackSelect = "people?select=id,name,role,phone,email,active&active=eq.true&order=role.asc,name.asc";
+      peopleRows = (await supabaseFetch(fallbackSelect)).map(normalizePersonRow);
+      renderPeople();
+      refreshIcons();
+    } catch (fallbackError) {
+      console.info(fallbackError.message);
+    }
   }
 }
 
@@ -516,6 +654,8 @@ async function submitOrderModal(form) {
     }));
     markButtonState(button, "is-checked");
     closeModal();
+    await hydrateFromSupabase();
+    setView("checklist");
   } catch (error) {
     console.info(error.message);
     markButtonState(button, "is-error");
@@ -679,6 +819,147 @@ function renderHistory(target, rows, type) {
     .join("");
 }
 
+function formatDateTime(value) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function renderChecklist() {
+  const target = qs("#checklistList");
+  if (!target) {
+    return;
+  }
+
+  const visibleRows = checklistRows
+    .map((row, index) => ({ ...row, index }))
+    .filter((row) => {
+      const targetText = `${row.name} ${row.category} ${row.unit} ${row.status} ${row.operator}`.toLowerCase();
+      return targetText.includes(searchQuery);
+    });
+
+  if (!visibleRows.length) {
+    target.innerHTML = `<div class="empty-state"><i data-lucide="clipboard-check"></i><span>No checklist rows</span></div>`;
+    return;
+  }
+
+  const grouped = visibleRows.reduce((groups, row) => {
+    const key = row.category || "Checklist";
+    groups[key] = groups[key] || [];
+    groups[key].push(row);
+    return groups;
+  }, {});
+
+  target.innerHTML = Object.entries(grouped)
+    .map(
+      ([group, rows]) => `
+        <div class="checklist-group">
+          <div class="group-title">
+            <span class="dot"></span>
+            <strong>${group}</strong>
+            <span class="count">${rows.length}</span>
+          </div>
+          ${rows
+            .map(
+              (row) => `
+                <div class="checklist-row ${row.status === "done" ? "done" : ""}" data-check-index="${row.index}">
+                  <img class="thumb" src="${row.img}" alt="${row.name}" loading="lazy" ${thumbFallback} />
+                  <span class="product-main">
+                    <span class="product-name">${row.name}${row.price ? `-$${row.price}` : ""}</span>
+                    <span class="product-unit">${row.unit || row.note || "ORDER"}</span>
+                    <span class="check-meta">
+                      ${row.status === "done" ? `Done by ${row.doneBy || row.operator || "U"} ${formatDateTime(row.doneAt)}` : `By ${row.operator} ${formatDateTime(row.checkedAt)}`}
+                    </span>
+                  </span>
+                  <div class="row-actions">
+                    <span class="qty">${Number(row.stock || 0)}</span>
+                    <button class="action-mini plus checklist-action" type="button" data-check-action="in" aria-label="Nhập kho">${actionIcons.plus}</button>
+                    <button class="action-mini minus checklist-action" type="button" data-check-action="out" aria-label="Xuất kho">${actionIcons.minus}</button>
+                    <button class="action-mini check checklist-action ${row.status === "done" ? "is-checked" : ""}" type="button" data-check-action="done" aria-label="Done">${actionIcons.check}</button>
+                  </div>
+                </div>
+              `,
+            )
+            .join("")}
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function renderPeople() {
+  const filterTarget = qs("#peopleFilter");
+  const listTarget = qs("#peopleList");
+  if (!filterTarget || !listTarget) {
+    return;
+  }
+
+  const roleCounts = peopleRows.reduce(
+    (counts, row) => {
+      counts.All += 1;
+      counts[row.role] = (counts[row.role] || 0) + 1;
+      return counts;
+    },
+    { All: 0 },
+  );
+  const roles = ["All", ...Object.keys(roleCounts).filter((role) => role !== "All").sort()];
+  if (!roles.includes(peopleRoleFilter)) {
+    peopleRoleFilter = "All";
+  }
+
+  filterTarget.innerHTML = roles
+    .map(
+      (role) => `
+        <button class="${role === peopleRoleFilter ? "active" : ""}" type="button" data-people-role="${role}">
+          <span>${role}</span>
+          <span class="count">${roleCounts[role]}</span>
+        </button>
+      `,
+    )
+    .join("");
+
+  const visiblePeople = peopleRows.filter((person) => {
+    const roleMatches = peopleRoleFilter === "All" || person.role === peopleRoleFilter;
+    const text = `${person.name} ${person.role} ${person.phone} ${person.email}`.toLowerCase();
+    return roleMatches && text.includes(searchQuery);
+  });
+
+  if (!visiblePeople.length) {
+    listTarget.innerHTML = `<div class="empty-state"><i data-lucide="users"></i><span>No people found</span></div>`;
+    return;
+  }
+
+  listTarget.innerHTML = `
+    <div class="people-group-title">${peopleRoleFilter} <span class="count">${visiblePeople.length}</span></div>
+    ${visiblePeople
+      .map(
+        (person) => `
+          <div class="person-row">
+            <span class="person-avatar">
+              ${person.img ? `<img src="${person.img}" alt="${person.name}" loading="lazy" onerror="this.remove()" />` : person.name.slice(0, 1)}
+            </span>
+            <span class="person-main">
+              <span class="entry-title">${person.name}</span>
+              <span class="entry-user">${person.role}</span>
+              ${person.email || person.phone ? `<span class="person-contact">${person.email || person.phone}</span>` : ""}
+            </span>
+            <span class="person-actions">
+              <i data-lucide="trash-2"></i>
+              <i data-lucide="pencil"></i>
+              <i data-lucide="mail"></i>
+            </span>
+          </div>
+        `,
+      )
+      .join("")}
+  `;
+}
+
 function setView(viewName) {
   document.body.dataset.view = viewName;
   qsa(".view").forEach((view) => view.classList.remove("active"));
@@ -686,6 +967,7 @@ function setView(viewName) {
   qs(`#${viewName}View`)?.classList.add("active");
   const searchLabels = {
     items: "item",
+    checklist: "Checklist",
     warehouse: "Warehouse",
     people: "People",
     setup: "Setup Work",
@@ -695,8 +977,57 @@ function setView(viewName) {
   qs("#globalSearch").placeholder = `Search ${label}`;
   searchQuery = "";
   qs("#globalSearch").value = "";
-  renderProducts();
+  renderActiveViewList();
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function activeViewName() {
+  return document.body.dataset.view || "home";
+}
+
+function renderActiveViewList() {
+  const viewName = activeViewName();
+  if (viewName === "items") {
+    renderProducts();
+    return;
+  }
+  if (viewName === "checklist") {
+    renderChecklist();
+    return;
+  }
+  if (viewName === "people") {
+    renderPeople();
+  }
+}
+
+async function completeChecklistRow(row, button) {
+  if (!row?.id) {
+    return;
+  }
+
+  const now = new Date();
+  const local = localDateParts(now);
+  button.disabled = true;
+  markButtonState(button, "is-saving");
+
+  try {
+    await supabaseUpdate("check", `id=eq.${encodeURIComponent(row.id)}`, {
+      status: "done",
+      done_by_name: currentOperatorName(),
+      done_at: now.toISOString(),
+      done_date: local.date,
+      done_time: local.time,
+    });
+    markButtonState(button, "is-checked");
+    await hydrateFromSupabase();
+  } catch (error) {
+    console.info(error.message);
+    markButtonState(button, "is-error");
+  } finally {
+    setTimeout(() => {
+      button.disabled = false;
+    }, 700);
+  }
 }
 
 function viewFromHash() {
@@ -722,6 +1053,28 @@ function bindEvents() {
       return;
     }
 
+    const checklistButton = event.target.closest("[data-check-action]");
+    if (checklistButton) {
+      const rowEl = checklistButton.closest("[data-check-index]");
+      const row = checklistRows[Number(rowEl?.dataset.checkIndex)];
+      if (!row) {
+        return;
+      }
+      const action = checklistButton.dataset.checkAction;
+      if (action === "in") {
+        openStockModal(checklistInventoryItem(row), checklistButton, "IN");
+        return;
+      }
+      if (action === "out") {
+        openStockModal(checklistInventoryItem(row), checklistButton, "OUT");
+        return;
+      }
+      if (action === "done") {
+        await completeChecklistRow(row, checklistButton);
+      }
+      return;
+    }
+
     const actionButton = event.target.closest(".action-mini");
     if (actionButton) {
       const product = actionButton.closest("[data-index]");
@@ -743,6 +1096,14 @@ function bindEvents() {
     const viewButton = event.target.closest("[data-view]");
     if (viewButton) {
       setView(viewButton.dataset.view);
+      return;
+    }
+
+    const peopleRoleButton = event.target.closest("[data-people-role]");
+    if (peopleRoleButton) {
+      peopleRoleFilter = peopleRoleButton.dataset.peopleRole || "All";
+      renderPeople();
+      refreshIcons();
       return;
     }
 
@@ -779,7 +1140,7 @@ function bindEvents() {
 
   qs("#globalSearch").addEventListener("input", (event) => {
     searchQuery = event.target.value.trim().toLowerCase();
-    renderProducts();
+    renderActiveViewList();
     refreshIcons();
   });
 
@@ -816,6 +1177,8 @@ renderProducts();
 renderDetail();
 renderHistory("#warehouseIn", warehouseIn, "in");
 renderHistory("#warehouseOut", warehouseOut, "out");
+renderChecklist();
+renderPeople();
 bindEvents();
 refreshIcons();
 if (window.location.hash) {
