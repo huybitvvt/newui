@@ -16,6 +16,8 @@
   --success-soft: #ecfdf3;
   --danger-soft: #fff1f2;
   --purple-soft: #f4efff;
+  --ai-cyan: #10b8d9;
+  --ai-violet: #7c3aed;
   --blue-glow: 0 0 0 4px rgba(22, 119, 185, 0.12);
   --shadow: 0 14px 30px rgba(36, 54, 78, 0.12);
   --soft-shadow: 0 6px 18px rgba(38, 55, 77, 0.08);
@@ -38,7 +40,11 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    linear-gradient(180deg, #f8fafc 0, #f3f6f9 260px),
+    linear-gradient(120deg, rgba(16, 184, 217, 0.08), transparent 34%),
+    linear-gradient(240deg, rgba(124, 58, 237, 0.055), transparent 32%),
+    repeating-linear-gradient(90deg, rgba(22, 119, 185, 0.035) 0 1px, transparent 1px 74px),
+    repeating-linear-gradient(0deg, rgba(22, 119, 185, 0.025) 0 1px, transparent 1px 74px),
+    linear-gradient(180deg, #f8fbff 0, #f3f6f9 260px),
     var(--bg);
   color: var(--text);
   -webkit-tap-highlight-color: transparent;
@@ -92,7 +98,7 @@ input:focus-visible,
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.97);
+  background: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid rgba(204, 214, 224, 0.78);
   box-shadow: 0 2px 14px rgba(36, 54, 78, 0.05);
   backdrop-filter: blur(12px);
@@ -150,7 +156,9 @@ input:focus-visible,
   align-items: center;
   gap: 10px;
   padding: 0 14px;
-  background: #f4f7fa;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(244, 247, 250, 0.94)),
+    #f4f7fa;
   border: 1px solid #e2e8f0;
   border-radius: var(--radius);
   color: var(--muted);
@@ -3372,9 +3380,12 @@ i[data-lucide] {
   margin: 10px;
   border: 1px solid rgba(204, 214, 224, 0.88);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.98);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 252, 255, 0.96)),
+    rgba(255, 255, 255, 0.98);
   overflow: hidden;
   box-shadow: var(--soft-shadow);
+  backdrop-filter: blur(12px);
 }
 
 .checklist-group + .checklist-group {
@@ -3452,11 +3463,15 @@ i[data-lucide] {
   gap: 10px;
   border: 1px solid #0f7dc2;
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #2d9ee0, #0f7dc2);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent 42%),
+    linear-gradient(135deg, var(--ai-cyan), #0f7dc2 52%, var(--ai-violet));
   color: #ffffff;
   font-size: 17px;
   font-weight: 850;
-  box-shadow: 0 8px 18px rgba(15, 125, 194, 0.22);
+  box-shadow:
+    0 8px 18px rgba(15, 125, 194, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
 .summary-copy-button:disabled {

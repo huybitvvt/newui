@@ -23,15 +23,22 @@ drop table if exists public."Cash-Flow" cascade;
 create table if not exists public.menu (
   id text primary key,
   menu text not null,
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
   catalog integer default 1,
   icon text,
   permission text default 'CEO'
 );
 
+alter table public.menu add column if not exists branch text not null default 'JT';
+alter table public.menu add column if not exists brand text not null default 'MISSISSAUGA';
+
 create table if not exists public.people (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   role text,
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
   phone text,
   email text,
   image_url text,
@@ -40,17 +47,26 @@ create table if not exists public.people (
 );
 
 alter table public.people add column if not exists image_url text;
+alter table public.people add column if not exists branch text not null default 'JT';
+alter table public.people add column if not exists brand text not null default 'MISSISSAUGA';
 
 create table if not exists public.item_categories (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   code text unique,
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
   created_at timestamptz not null default now()
 );
+
+alter table public.item_categories add column if not exists branch text not null default 'JT';
+alter table public.item_categories add column if not exists brand text not null default 'MISSISSAUGA';
 
 create table if not exists public.items (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
   category_id uuid references public.item_categories(id) on delete set null,
   unit text,
   price numeric(12, 2) default 0,
@@ -61,26 +77,43 @@ create table if not exists public.items (
   updated_at timestamptz not null default now()
 );
 
+alter table public.items add column if not exists branch text not null default 'JT';
+alter table public.items add column if not exists brand text not null default 'MISSISSAUGA';
+
 create unique index if not exists idx_items_name_unique on public.items (lower(name));
 
 create table if not exists public.warehouse_history (
   id uuid primary key default gen_random_uuid(),
   item_id uuid references public.items(id) on delete cascade,
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
   movement_type text not null check (movement_type in ('IN', 'OUT', 'ORDER')),
   quantity integer not null,
   operator_id uuid references public.people(id) on delete set null,
+  operator_name text not null default 'U',
   note text,
   created_at timestamptz not null default now()
 );
 
+alter table public.warehouse_history add column if not exists branch text not null default 'JT';
+alter table public.warehouse_history add column if not exists brand text not null default 'MISSISSAUGA';
+alter table public.warehouse_history add column if not exists operator_name text not null default 'U';
+
 create table if not exists public.stock_log (
   id uuid primary key default gen_random_uuid(),
   item_id uuid references public.items(id) on delete cascade,
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
   warehouse_history_id uuid references public.warehouse_history(id) on delete set null,
   quantity_change integer not null,
   operator_id uuid references public.people(id) on delete set null,
+  operator_name text not null default 'U',
   created_at timestamptz not null default now()
 );
+
+alter table public.stock_log add column if not exists branch text not null default 'JT';
+alter table public.stock_log add column if not exists brand text not null default 'MISSISSAUGA';
+alter table public.stock_log add column if not exists operator_name text not null default 'U';
 
 create table if not exists public."check" (
   id uuid primary key default gen_random_uuid(),
@@ -90,6 +123,8 @@ create table if not exists public."check" (
   quantity integer,
   note text,
   check_type text not null default 'ORDER',
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
   status text not null default 'pending' check (status in ('pending', 'done')),
   operator_id uuid references public.people(id) on delete set null,
   operator_name text not null default 'U',
@@ -108,6 +143,8 @@ alter table public."check" add column if not exists item_image_url text;
 alter table public."check" add column if not exists quantity integer;
 alter table public."check" add column if not exists note text;
 alter table public."check" add column if not exists check_type text not null default 'ORDER';
+alter table public."check" add column if not exists branch text not null default 'JT';
+alter table public."check" add column if not exists brand text not null default 'MISSISSAUGA';
 alter table public."check" add column if not exists status text not null default 'pending';
 alter table public."check" add column if not exists done_by_id uuid references public.people(id) on delete set null;
 alter table public."check" add column if not exists done_by_name text;
@@ -120,7 +157,8 @@ create table if not exists public.checklist (
   work text not null,
   note text,
   team text,
-  branch text,
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
   status text not null default 'pending' check (status in ('pending', 'done')),
   done_by_name text,
   done_at timestamptz,
@@ -133,6 +171,10 @@ create table if not exists public.checklist (
 alter table public.checklist add column if not exists note text;
 alter table public.checklist add column if not exists team text;
 alter table public.checklist add column if not exists branch text;
+alter table public.checklist alter column branch set default 'JT';
+update public.checklist set branch = 'JT' where branch is null or branch = '';
+alter table public.checklist alter column branch set not null;
+alter table public.checklist add column if not exists brand text not null default 'MISSISSAUGA';
 alter table public.checklist add column if not exists status text not null default 'pending';
 alter table public.checklist add column if not exists done_by_name text;
 alter table public.checklist add column if not exists done_at timestamptz;
@@ -143,11 +185,16 @@ alter table public.checklist add column if not exists updated_at timestamptz not
 create table if not exists public.setup_work (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  branch text not null default 'JT',
+  brand text not null default 'MISSISSAUGA',
   value jsonb not null default '{}'::jsonb,
   active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.setup_work add column if not exists branch text not null default 'JT';
+alter table public.setup_work add column if not exists brand text not null default 'MISSISSAUGA';
 
 delete from public.menu
 where lower(regexp_replace(menu, '[^a-z0-9]+', '', 'g')) in (
@@ -160,117 +207,126 @@ where lower(regexp_replace(menu, '[^a-z0-9]+', '', 'g')) in (
   'cashflow'
 );
 
-insert into public.menu (id, menu, catalog, icon, permission)
+insert into public.menu (id, menu, branch, brand, catalog, icon, permission)
 values
-  ('329267b2', 'items', 1, 'assets/items-icon.svg', 'CEO , Staff'),
-  ('e3490d59', 'Checklist', 1, 'https://cdn-icons-png.flaticon.com/128/681/681662.png', 'CEO , Staff'),
-  ('e3490d60', 'Warehouse', 1, 'https://cdn-icons-png.flaticon.com/128/2897/2897818.png', 'CEO , Staff'),
-  ('e3490d58', 'People', 1, 'https://cdn-icons-png.flaticon.com/128/1489/1489404.png', 'CEO'),
-  ('e3490d69', 'Setup Work', 1, 'https://cdn-icons-png.flaticon.com/128/2049/2049831.png', 'CEO')
+  ('329267b2', 'items', 'JT', 'MISSISSAUGA', 1, 'assets/items-icon.svg', 'CEO , Staff'),
+  ('e3490d59', 'Checklist', 'JT', 'MISSISSAUGA', 1, 'https://cdn-icons-png.flaticon.com/128/681/681662.png', 'CEO , Staff'),
+  ('e3490d60', 'Warehouse', 'JT', 'MISSISSAUGA', 1, 'https://cdn-icons-png.flaticon.com/128/2897/2897818.png', 'CEO , Staff'),
+  ('e3490d58', 'People', 'JT', 'MISSISSAUGA', 1, 'https://cdn-icons-png.flaticon.com/128/1489/1489404.png', 'CEO'),
+  ('e3490d69', 'Setup Work', 'JT', 'MISSISSAUGA', 1, 'https://cdn-icons-png.flaticon.com/128/2049/2049831.png', 'CEO')
 on conflict (id) do update set
   menu = excluded.menu,
+  branch = excluded.branch,
+  brand = excluded.brand,
   catalog = excluded.catalog,
   icon = excluded.icon,
   permission = excluded.permission;
 
-insert into public.people (id, name, role, image_url, active)
+insert into public.people (id, name, role, branch, brand, image_url, active)
 values
-  ('11111111-1111-1111-1111-111111111111', 'Ammar', 'Staff', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80', true),
-  ('22222222-2222-2222-2222-222222222222', 'Franco', 'CEO', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=120&h=120&q=80', true),
-  ('33333333-3333-3333-3333-333333333333', 'Store', 'Store', 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=120&h=120&q=80', true)
+  ('11111111-1111-1111-1111-111111111111', 'Ammar', 'Staff', 'JT', 'MISSISSAUGA', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80', true),
+  ('22222222-2222-2222-2222-222222222222', 'Franco', 'CEO', 'JT', 'MISSISSAUGA', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=120&h=120&q=80', true),
+  ('33333333-3333-3333-3333-333333333333', 'Store', 'Store', 'JT', 'MISSISSAUGA', 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=120&h=120&q=80', true)
 on conflict (id) do update set
   name = excluded.name,
   role = excluded.role,
+  branch = excluded.branch,
+  brand = excluded.brand,
   image_url = excluded.image_url,
   active = excluded.active;
 
-insert into public.checklist (id, work, note, team, branch)
+insert into public.checklist (id, work, note, team, branch, brand)
 values
-  ('id32', 'Restock soft drinks (7up, Redbull, Diet Redbull, Al-Shani)', '', 'Closing team', ''),
-  ('id33', 'Refill all Syrup and Slush, Caramel sauce, Hershey sauce', '', 'Closing team', ''),
-  ('id34', 'Clean the coffee Machine, keep the milk inside fridge', '', 'Closing team', ''),
-  ('id35', 'Clean all refrigerators', '', 'Closing team', ''),
-  ('id36', 'Clean the sweet machines', '', 'Closing team', ''),
-  ('id37', 'Refill all chocolate in bottle, warmer.', '', 'Closing team', ''),
-  ('id38', '-Add 4kg frozen strawberries to the refrigerator. -Check Qishtah, keep them back inside the fridge if they are outside', '', 'Closing team', ''),
-  ('id39', 'Remove lime slice, Avocado, Heart Attact, Emperor', '', 'Closing team', ''),
-  ('id40', 'Clean sealing machine and can sealing machine', '', 'Closing team', ''),
-  ('1a493e94', 'Refill all cutlery for customer outside', '', 'Closing team', ''),
-  ('06f06551', 'Refill all sauce for ice cream (Oreo, Snickers, Ferrero, Bueno)', '', 'Closing team', ''),
-  ('129556d8', 'Lock the back door (with both doors)', '', 'Closing team', ''),
-  ('da6f93b2', 'Clean Cashier Area', '', 'Closing team', ''),
-  ('d5da1fc9', 'Clean Orange, Carrot, Apple Machine', '', 'Closing team', ''),
-  ('3aa4588a', 'Place the ice cream machine on standby mode.', '', 'Closing team', ''),
-  ('f9e44716', 'Clean 2 cups measuring sugar and keep dry', '', 'Closing team', ''),
-  ('c655ed57', 'Turn OFF the AC inside kitchen', '', 'Closing team', ''),
-  ('5be7ec45', 'Place the warmer chocolate machine on standby mode.', '', 'Closing team', ''),
-  ('824df0d0', 'Kill insects with electric racket', '', 'Closing team', ''),
-  ('de5894ac', 'Clean Microwave, cooler and Blender, ice maker inside kitchen', '', 'Closing team', ''),
-  ('ebe506fe', 'Discard all the full black garbage bags and clean the trash can lid.', '', 'Closing team', ''),
-  ('cbb6d6d4', 'Clean all the sink with soap', '', 'Closing team', ''),
-  ('3731193f', 'Personal items such as water bottles, coffee cups, and food must be taken home at the end of each shift. Any leftover food or drinks must be discarded.', '', 'Closing team', ''),
-  ('f39b95e1', 'Order Crepe-Brownie', '', 'Closing team', ''),
-  ('1048f52b', 'SUNDAY (Put all equipments in to the sinks with Clorock)', 'SUNDAY', 'Closing team', ''),
-  ('3b71969b', 'Clean all towers', '', 'Closing team', ''),
-  ('2cfbc6ad', 'Sent order to Cash&Carry', '', 'Closing team', ''),
-  ('04a5c3ff', 'Check and order Ice Cream Vanilla + Brownie', '', 'Closing team', ''),
-  ('0128ad0e', '-Avocado (Use the milk from the Coffee machine) -Mango -Strawberry (In the cooler)', '', 'Opening team', ''),
-  ('d2371c4c', 'Turn on Ice cream Machine and refill Mango ice cream, Einstein ice cream', '', 'Opening team', ''),
-  ('16feeabb', 'Kill insects with electric racket', '', 'Opening team', ''),
-  ('2c1a80a1', 'Prepare Mango chunks, Mango for Hambah and refill Bubbles.', '', 'Opening team', ''),
-  ('32edfdcc', 'Slice Lime and prepare mint for Mojito', '', 'Opening team', ''),
-  ('3ceb5114', 'Bring frozen strawberry outside', '', 'Opening team', ''),
-  ('366e935e', 'Prepare water for the customer with ice', '', 'Opening team', ''),
-  ('0d1d61a4', 'Turn on the sweet Machine: Waffle - 400F Crepe - 350F Mini Pancakes - 180C', '', 'Opening team', ''),
-  ('8d84bc67', 'Clean all sweet machine before preparing order for customer', '', 'Opening team', ''),
-  ('6b89fdf1', 'Prepare the filtered white chocolate.', '', 'Opening team', ''),
-  ('64c3f571', 'Refill all chocolate in bottle, warmer and chocolate Fountains', '', 'Opening team', ''),
-  ('c8bae196', 'Prepare (Pancake mix, Crepe mix)', '', 'Opening team', ''),
-  ('b09d8f46', 'Prepare brownie cake for "Hannan-Pillow-Fettuccini"', '', 'Opening team', ''),
-  ('2a18f522', 'Check ice maker and make sure it working well', '', 'Opening team', ''),
-  ('2b614b1d', 'Prepare Pomegranate pills', '', 'Opening team', ''),
-  ('0b3ccd84', 'Prepare all fresh fruits and Fruits salad.', '', 'Opening team', ''),
-  ('065570a3', 'Check and refill all ice cream machines.', '', 'Opening team', ''),
-  ('aec3c911', 'Refill cutlery for the customer, make sure trash bin of the customer good', '', 'Opening team', ''),
-  ('4a98956b', 'Open the sign, open the Uber Eats application.', '', 'Opening team', ''),
-  ('509cb705', 'Turn on the Loyalzoo App in the Clover system, Remind the Customer our offer', '', 'Opening team', ''),
-  ('a984d0a3', 'Clean all cashier areas, Turn on the LED Lady, Open back door', '', 'Opening team', ''),
-  ('a8129f8c', 'Sort fresh Strawberry to 3 class (Strawberry chocolate, Topping, Juice)', '', 'Opening team', ''),
-  ('2a3712dc', 'Prepare sauce: Kinder-Ferrero-Snickers-Oreo-Pistachio', '', 'Opening team', ''),
-  ('5a610706', 'Prepare Nuts, Pistachio powder', '', 'Opening team', ''),
-  ('92c7cc5c', 'Cut Kinder chocolate, Prepare all powder, biscuits needed.', '', 'Opening team', ''),
-  ('70203101', 'Fold Fettuccini box', '', 'Opening team', ''),
-  ('4be715dd', 'Check Kishtah and put them from the Freezer to the Fridge if needed.', '', 'Opening team', ''),
-  ('468e1c4d', 'Put cash Tips Box on counter', '', 'Opening team', ''),
-  ('eb0a0c90', 'Clean the walls, the drawers under the counter, and put everything back in order.', '', 'Opening team', ''),
-  ('f3b34fca', 'Check that the restroom has toilet paper, hand sanitizer, and that everything is working properly.', '', 'Opening team', ''),
-  ('8670ac7c', 'Check if there is enough milk, fruit, or if anything is missing, inform the manager immediately.', '', 'Opening team', ''),
-  ('780186d2', 'WEDNESDAY: Remove the refrigerator for cleaning by the company.', '', 'Closing team', ''),
-  ('691a067a', 'Cover all biscuits and powder containers', '', 'Closing team', ''),
-  ('8de5fcc9', 'Clean all blenders with soap', '', 'Closing team', ''),
-  ('699d07a8', 'Check all the diffusers, make sure they are working well', '', 'Opening team', '')
+  ('id32', 'Restock soft drinks (7up, Redbull, Diet Redbull, Al-Shani)', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('id33', 'Refill all Syrup and Slush, Caramel sauce, Hershey sauce', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('id34', 'Clean the coffee Machine, keep the milk inside fridge', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('id35', 'Clean all refrigerators', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('id36', 'Clean the sweet machines', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('id37', 'Refill all chocolate in bottle, warmer.', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('id38', '-Add 4kg frozen strawberries to the refrigerator. -Check Qishtah, keep them back inside the fridge if they are outside', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('id39', 'Remove lime slice, Avocado, Heart Attact, Emperor', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('id40', 'Clean sealing machine and can sealing machine', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('1a493e94', 'Refill all cutlery for customer outside', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('06f06551', 'Refill all sauce for ice cream (Oreo, Snickers, Ferrero, Bueno)', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('129556d8', 'Lock the back door (with both doors)', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('da6f93b2', 'Clean Cashier Area', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('d5da1fc9', 'Clean Orange, Carrot, Apple Machine', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('3aa4588a', 'Place the ice cream machine on standby mode.', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('f9e44716', 'Clean 2 cups measuring sugar and keep dry', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('c655ed57', 'Turn OFF the AC inside kitchen', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('5be7ec45', 'Place the warmer chocolate machine on standby mode.', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('824df0d0', 'Kill insects with electric racket', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('de5894ac', 'Clean Microwave, cooler and Blender, ice maker inside kitchen', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('ebe506fe', 'Discard all the full black garbage bags and clean the trash can lid.', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('cbb6d6d4', 'Clean all the sink with soap', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('3731193f', 'Personal items such as water bottles, coffee cups, and food must be taken home at the end of each shift. Any leftover food or drinks must be discarded.', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('f39b95e1', 'Order Crepe-Brownie', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('1048f52b', 'SUNDAY (Put all equipments in to the sinks with Clorock)', 'SUNDAY', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('3b71969b', 'Clean all towers', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('2cfbc6ad', 'Sent order to Cash&Carry', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('04a5c3ff', 'Check and order Ice Cream Vanilla + Brownie', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('0128ad0e', '-Avocado (Use the milk from the Coffee machine) -Mango -Strawberry (In the cooler)', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('d2371c4c', 'Turn on Ice cream Machine and refill Mango ice cream, Einstein ice cream', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('16feeabb', 'Kill insects with electric racket', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('2c1a80a1', 'Prepare Mango chunks, Mango for Hambah and refill Bubbles.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('32edfdcc', 'Slice Lime and prepare mint for Mojito', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('3ceb5114', 'Bring frozen strawberry outside', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('366e935e', 'Prepare water for the customer with ice', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('0d1d61a4', 'Turn on the sweet Machine: Waffle - 400F Crepe - 350F Mini Pancakes - 180C', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('8d84bc67', 'Clean all sweet machine before preparing order for customer', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('6b89fdf1', 'Prepare the filtered white chocolate.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('64c3f571', 'Refill all chocolate in bottle, warmer and chocolate Fountains', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('c8bae196', 'Prepare (Pancake mix, Crepe mix)', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('b09d8f46', 'Prepare brownie cake for "Hannan-Pillow-Fettuccini"', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('2a18f522', 'Check ice maker and make sure it working well', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('2b614b1d', 'Prepare Pomegranate pills', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('0b3ccd84', 'Prepare all fresh fruits and Fruits salad.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('065570a3', 'Check and refill all ice cream machines.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('aec3c911', 'Refill cutlery for the customer, make sure trash bin of the customer good', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('4a98956b', 'Open the sign, open the Uber Eats application.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('509cb705', 'Turn on the Loyalzoo App in the Clover system, Remind the Customer our offer', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('a984d0a3', 'Clean all cashier areas, Turn on the LED Lady, Open back door', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('a8129f8c', 'Sort fresh Strawberry to 3 class (Strawberry chocolate, Topping, Juice)', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('2a3712dc', 'Prepare sauce: Kinder-Ferrero-Snickers-Oreo-Pistachio', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('5a610706', 'Prepare Nuts, Pistachio powder', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('92c7cc5c', 'Cut Kinder chocolate, Prepare all powder, biscuits needed.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('70203101', 'Fold Fettuccini box', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('4be715dd', 'Check Kishtah and put them from the Freezer to the Fridge if needed.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('468e1c4d', 'Put cash Tips Box on counter', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('eb0a0c90', 'Clean the walls, the drawers under the counter, and put everything back in order.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('f3b34fca', 'Check that the restroom has toilet paper, hand sanitizer, and that everything is working properly.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('8670ac7c', 'Check if there is enough milk, fruit, or if anything is missing, inform the manager immediately.', '', 'Opening team', 'JT', 'MISSISSAUGA'),
+  ('780186d2', 'WEDNESDAY: Remove the refrigerator for cleaning by the company.', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('691a067a', 'Cover all biscuits and powder containers', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('8de5fcc9', 'Clean all blenders with soap', '', 'Closing team', 'JT', 'MISSISSAUGA'),
+  ('699d07a8', 'Check all the diffusers, make sure they are working well', '', 'Opening team', 'JT', 'MISSISSAUGA')
 on conflict (id) do update set
   work = excluded.work,
   note = excluded.note,
   team = excluded.team,
   branch = excluded.branch,
+  brand = excluded.brand,
   updated_at = now();
 
-insert into public.item_categories (id, name, code)
+insert into public.item_categories (id, name, code, branch, brand)
 values
-  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Fruits - JT', 'fruits-jt')
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Fruits - JT', 'fruits-jt', 'JT', 'MISSISSAUGA')
 on conflict (code) do update set
-  name = excluded.name;
+  name = excluded.name,
+  branch = excluded.branch,
+  brand = excluded.brand;
 
-insert into public.items (id, name, category_id, unit, price, barcode_1, image_url, active)
+insert into public.items (id, name, branch, brand, category_id, unit, price, barcode_1, image_url, active)
 values
-  ('00000000-0000-0000-0000-000000000001', 'Avocado', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '48/CARTON', 50, '01175022650416181001911830', 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?auto=format&fit=crop&w=240&h=240&q=80', true),
-  ('00000000-0000-0000-0000-000000000002', 'Banana', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1/CARTON-ADD BARCODE', 35, '01175022650416181001911831', 'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=240&h=240&q=80', true),
-  ('00000000-0000-0000-0000-000000000003', 'Beetroot', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '10/KG-ADD BARCODE', 21, '01175022650416181001911832', 'https://images.unsplash.com/photo-1593105544559-ecb03bf76f82?auto=format&fit=crop&w=240&h=240&q=80', true),
-  ('00000000-0000-0000-0000-000000000004', 'Blackberry', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '/PACK', 4, '01175022650416181001911833', 'https://images.unsplash.com/photo-1498557850523-fd3d118b962e?auto=format&fit=crop&w=240&h=240&q=80', true),
-  ('00000000-0000-0000-0000-000000000005', 'Carrot', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '/KG-ADD BARCODE', 19, '01175022650416181001911835', 'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=240&h=240&q=80', true)
+  ('00000000-0000-0000-0000-000000000001', 'Avocado', 'JT', 'MISSISSAUGA', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '48/CARTON', 50, '01175022650416181001911830', 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?auto=format&fit=crop&w=240&h=240&q=80', true),
+  ('00000000-0000-0000-0000-000000000002', 'Banana', 'JT', 'MISSISSAUGA', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1/CARTON-ADD BARCODE', 35, '01175022650416181001911831', 'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=240&h=240&q=80', true),
+  ('00000000-0000-0000-0000-000000000003', 'Beetroot', 'JT', 'MISSISSAUGA', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '10/KG-ADD BARCODE', 21, '01175022650416181001911832', 'https://images.unsplash.com/photo-1593105544559-ecb03bf76f82?auto=format&fit=crop&w=240&h=240&q=80', true),
+  ('00000000-0000-0000-0000-000000000004', 'Blackberry', 'JT', 'MISSISSAUGA', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '/PACK', 4, '01175022650416181001911833', 'https://images.unsplash.com/photo-1498557850523-fd3d118b962e?auto=format&fit=crop&w=240&h=240&q=80', true),
+  ('00000000-0000-0000-0000-000000000005', 'Carrot', 'JT', 'MISSISSAUGA', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '/KG-ADD BARCODE', 19, '01175022650416181001911835', 'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=240&h=240&q=80', true)
 on conflict (id) do update set
   name = excluded.name,
+  branch = excluded.branch,
+  brand = excluded.brand,
   category_id = excluded.category_id,
   unit = excluded.unit,
   price = excluded.price,
@@ -279,36 +335,44 @@ on conflict (id) do update set
   active = excluded.active,
   updated_at = now();
 
-insert into public.warehouse_history (id, item_id, movement_type, quantity, operator_id, note, created_at)
+insert into public.warehouse_history (id, item_id, branch, brand, movement_type, quantity, operator_id, operator_name, note, created_at)
 values
-  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'IN', 14, '11111111-1111-1111-1111-111111111111', 'Initial stock', now() - interval '3 days'),
-  ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'OUT', 4, '11111111-1111-1111-1111-111111111111', 'Order stock', now() - interval '2 days'),
-  ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003', 'IN', 9, '22222222-2222-2222-2222-222222222222', 'Warehouse receive', now() - interval '1 day')
+  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'JT', 'MISSISSAUGA', 'IN', 14, '11111111-1111-1111-1111-111111111111', 'Ammar', 'Initial stock', now() - interval '3 days'),
+  ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'JT', 'MISSISSAUGA', 'OUT', 4, '11111111-1111-1111-1111-111111111111', 'Ammar', 'Order stock', now() - interval '2 days'),
+  ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003', 'JT', 'MISSISSAUGA', 'IN', 9, '22222222-2222-2222-2222-222222222222', 'Franco', 'Warehouse receive', now() - interval '1 day')
 on conflict (id) do update set
   item_id = excluded.item_id,
+  branch = excluded.branch,
+  brand = excluded.brand,
   movement_type = excluded.movement_type,
   quantity = excluded.quantity,
   operator_id = excluded.operator_id,
+  operator_name = excluded.operator_name,
   note = excluded.note,
   created_at = excluded.created_at;
 
-insert into public.stock_log (id, item_id, warehouse_history_id, quantity_change, operator_id, created_at)
+insert into public.stock_log (id, item_id, branch, brand, warehouse_history_id, quantity_change, operator_id, operator_name, created_at)
 values
-  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 14, '11111111-1111-1111-1111-111111111111', now() - interval '3 days'),
-  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', -4, '11111111-1111-1111-1111-111111111111', now() - interval '2 days'),
-  ('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', 9, '22222222-2222-2222-2222-222222222222', now() - interval '1 day')
+  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'JT', 'MISSISSAUGA', '10000000-0000-0000-0000-000000000001', 14, '11111111-1111-1111-1111-111111111111', 'Ammar', now() - interval '3 days'),
+  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'JT', 'MISSISSAUGA', '10000000-0000-0000-0000-000000000002', -4, '11111111-1111-1111-1111-111111111111', 'Ammar', now() - interval '2 days'),
+  ('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003', 'JT', 'MISSISSAUGA', '10000000-0000-0000-0000-000000000003', 9, '22222222-2222-2222-2222-222222222222', 'Franco', now() - interval '1 day')
 on conflict (id) do update set
   item_id = excluded.item_id,
+  branch = excluded.branch,
+  brand = excluded.brand,
   warehouse_history_id = excluded.warehouse_history_id,
   quantity_change = excluded.quantity_change,
   operator_id = excluded.operator_id,
+  operator_name = excluded.operator_name,
   created_at = excluded.created_at;
 
-insert into public.setup_work (id, name, value, active)
+insert into public.setup_work (id, name, branch, brand, value, active)
 values
-  ('30000000-0000-0000-0000-000000000001', 'default_permissions', '{"CEO": true, "Staff": true}'::jsonb, true)
+  ('30000000-0000-0000-0000-000000000001', 'default_permissions', 'JT', 'MISSISSAUGA', '{"CEO": true, "Staff": true}'::jsonb, true)
 on conflict (id) do update set
   name = excluded.name,
+  branch = excluded.branch,
+  brand = excluded.brand,
   value = excluded.value,
   active = excluded.active,
   updated_at = now();
@@ -321,6 +385,12 @@ create index if not exists idx_check_item_id on public."check"(item_id);
 create index if not exists idx_check_checked_at on public."check"(checked_at desc);
 create index if not exists idx_checklist_team on public.checklist(team);
 create index if not exists idx_checklist_status on public.checklist(status);
+create index if not exists idx_items_tenant on public.items(brand, branch);
+create index if not exists idx_people_tenant on public.people(brand, branch);
+create index if not exists idx_warehouse_history_tenant on public.warehouse_history(brand, branch);
+create index if not exists idx_stock_log_tenant on public.stock_log(brand, branch);
+create index if not exists idx_check_tenant on public."check"(brand, branch);
+create index if not exists idx_checklist_tenant on public.checklist(brand, branch);
 
 grant usage on schema public to anon, authenticated;
 grant select on
