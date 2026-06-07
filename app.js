@@ -115,6 +115,7 @@ let warehouseOut = [
 let selectedIndex = 0;
 let searchQuery = "";
 let activeModal = null;
+let inventoryByItemKey = {};
 
 const qs = (selector) => document.querySelector(selector);
 const qsa = (selector) => [...document.querySelectorAll(selector)];
@@ -184,7 +185,49 @@ function normalizeItemRow(row) {
     unit: row.unit || "",
     barcode: row.barcode_1 || "",
     img: row.image_url || image("photo-1523049673857-eb18f1d7b578"),
+    stock: 0,
   };
+}
+
+function itemInventoryKey(item) {
+  if (uuidPattern.test(item?.id || "")) {
+    return item.id;
+  }
+
+  return String(item?.name || "").trim().toLowerCase();
+}
+
+function historyInventoryKey(row) {
+  if (uuidPattern.test(row?.item_id || "")) {
+    return row.item_id;
+  }
+
+  return String(row?.items?.name || "").trim().toLowerCase();
+}
+
+function buildInventoryMap(historyRows) {
+  return historyRows.reduce((totals, row) => {
+    const key = historyInventoryKey(row);
+    if (!key) {
+      return totals;
+    }
+
+    const quantity = Math.abs(Number(row.quantity || 0));
+    if (!quantity || row.movement_type === "ORDER") {
+      return totals;
+    }
+
+    const delta = row.movement_type === "OUT" ? -quantity : quantity;
+    totals[key] = (totals[key] || 0) + delta;
+    return totals;
+  }, {});
+}
+
+function applyInventoryToItems() {
+  items = items.map((item) => ({
+    ...item,
+    stock: inventoryByItemKey[itemInventoryKey(item)] || 0,
+  }));
 }
 
 function formatDate(value) {
@@ -225,6 +268,7 @@ async function hydrateFromSupabase() {
     const itemRows = await supabaseFetch("items?select=id,name,unit,price,barcode_1,image_url,active,item_categories(name)&active=eq.true&order=name.asc");
     if (itemRows.length) {
       items = itemRows.map(normalizeItemRow);
+      applyInventoryToItems();
       selectedIndex = 0;
       renderProducts();
       renderDetail();
@@ -236,16 +280,19 @@ async function hydrateFromSupabase() {
 
   try {
     const historyRows = await supabaseFetch(
-      "warehouse_history?select=id,movement_type,quantity,note,created_at,items(name,image_url),people(name)&order=created_at.desc&limit=60",
+      "warehouse_history?select=id,item_id,movement_type,quantity,note,created_at,items(name,image_url),people(name)&order=created_at.desc&limit=1000",
     );
-    if (historyRows.length) {
-      const normalized = historyRows.map(normalizeWarehouseRow);
-      warehouseIn = normalized.filter((row) => row.qty >= 0);
-      warehouseOut = normalized.filter((row) => row.qty < 0);
-      renderHistory("#warehouseIn", warehouseIn, "in");
-      renderHistory("#warehouseOut", warehouseOut, "out");
-      refreshIcons();
-    }
+    inventoryByItemKey = buildInventoryMap(historyRows);
+    applyInventoryToItems();
+
+    const normalized = historyRows.slice(0, 60).map(normalizeWarehouseRow);
+    warehouseIn = normalized.filter((row) => row.qty >= 0);
+    warehouseOut = normalized.filter((row) => row.qty < 0);
+    renderProducts();
+    renderDetail();
+    renderHistory("#warehouseIn", warehouseIn, "in");
+    renderHistory("#warehouseOut", warehouseOut, "out");
+    refreshIcons();
   } catch (error) {
     console.info(error.message);
   }
@@ -513,10 +560,10 @@ async function submitStockModal(form) {
   }
 }
 
-function rowActions() {
+function rowActions(item) {
   return `
     <div class="row-actions">
-      <span class="qty">0</span>
+      <span class="qty">${Number(item?.stock || 0)}</span>
       <button class="action-mini plus" type="button" aria-label="Cộng">${actionIcons.plus}</button>
       <button class="action-mini minus" type="button" aria-label="Trừ">${actionIcons.minus}</button>
       <button class="action-mini confirm cart" type="button" aria-label="Mua hàng">${actionIcons.cart}</button>
@@ -542,7 +589,7 @@ function renderProducts() {
             <span class="product-name">${item.name}-$${item.price}</span>
             <span class="product-unit">${item.unit}</span>
           </span>
-          ${rowActions("cart")}
+          ${rowActions(item)}
         </div>
       `,
     )
