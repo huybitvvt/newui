@@ -335,34 +335,22 @@ function buildInventoryMap(historyRows) {
       return totals;
     }
 
-    const quantity = Math.abs(Number(row.quantity || 0));
-    if (!quantity || row.movement_type === "ORDER") {
-      return totals;
+    let quantity = 0;
+    if (row.log_type) {
+      quantity = Number(row.quantity_change || 0);
+      if (!quantity && row.log_type === "ORDER") {
+        quantity = -Math.abs(Number(row.order_quantity || 0));
+      }
+    } else {
+      quantity = Math.abs(Number(row.quantity || 0));
+      if (row.movement_type === "OUT") {
+        quantity *= -1;
+      } else if (row.movement_type === "ORDER") {
+        quantity *= -1;
+      }
     }
 
-    const delta = row.movement_type === "OUT" ? -quantity : quantity;
-    totals[key] = (totals[key] || 0) + delta;
-    return totals;
-  }, {});
-}
-
-function checklistItemKey(row) {
-  if (uuidPattern.test(row?.itemId || row?.item_id || "")) {
-    return row.itemId || row.item_id;
-  }
-
-  return String(row?.name || row?.item_name || "").trim().toLowerCase();
-}
-
-function buildPendingOrderMap(rows) {
-  return rows.reduce((totals, row) => {
-    if (row.status === "done") {
-      return totals;
-    }
-
-    const key = checklistItemKey(row);
-    const quantity = Number(row.quantity || 0);
-    if (!key || !quantity) {
+    if (!quantity) {
       return totals;
     }
 
@@ -375,14 +363,6 @@ function applyInventoryToItems() {
   items = items.map((item) => ({
     ...item,
     stock: inventoryByItemKey[itemInventoryKey(item)] || 0,
-  }));
-}
-
-function applyPendingOrdersToItems() {
-  const pendingOrderByItemKey = buildPendingOrderMap(checklistRows);
-  items = items.map((item) => ({
-    ...item,
-    orderQty: pendingOrderByItemKey[itemInventoryKey(item)] || 0,
   }));
 }
 
@@ -535,7 +515,6 @@ async function hydrateFromSupabase() {
     if (itemRows.length) {
       items = itemRows.map(normalizeItemRow).filter(isCurrentTenant);
       applyInventoryToItems();
-      applyPendingOrdersToItems();
       selectedIndex = 0;
       renderProducts();
       renderDetail();
@@ -553,7 +532,6 @@ async function hydrateFromSupabase() {
     const scopedHistoryRows = historyRows.filter(isCurrentTenant);
     inventoryByItemKey = buildInventoryMap(scopedHistoryRows);
     applyInventoryToItems();
-    applyPendingOrdersToItems();
 
     const normalized = scopedHistoryRows.slice(0, 60).map(normalizeWarehouseRow);
     warehouseIn = normalized.filter((row) => row.qty >= 0);
@@ -562,6 +540,21 @@ async function hydrateFromSupabase() {
     renderDetail();
     renderHistory("#warehouseIn", warehouseIn, "in");
     renderHistory("#warehouseOut", warehouseOut, "out");
+    refreshIcons();
+  } catch (error) {
+    console.info(error.message);
+  }
+
+  try {
+    const stockRows = await supabaseFetchWithFallback(
+      "stock_log?select=id,item_id,log_type,quantity_change,order_quantity,note,operator_name,created_at,branch,brand,items(name,image_url,branch,brand),people(name,branch,brand)&order=created_at.desc&limit=1000",
+      "stock_log?select=id,item_id,log_type,quantity_change,order_quantity,note,created_at,items(name,image_url),people(name)&order=created_at.desc&limit=1000",
+    );
+    const scopedStockRows = stockRows.filter(isCurrentTenant);
+    inventoryByItemKey = buildInventoryMap(scopedStockRows);
+    applyInventoryToItems();
+    renderProducts();
+    renderDetail();
     refreshIcons();
   } catch (error) {
     console.info(error.message);
@@ -585,9 +578,6 @@ async function hydrateFromSupabase() {
       "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,status,operator_name,checked_at,done_by_name,done_at,items(name,unit,price,image_url,item_categories(name))&order=created_at.desc&limit=1000",
     );
     checklistRows = checklistRowsRaw.map(normalizeChecklistRow).filter(isCurrentTenant);
-    applyPendingOrdersToItems();
-    renderProducts();
-    renderDetail();
     renderChecklist();
     refreshIcons();
   } catch (error) {
@@ -596,9 +586,6 @@ async function hydrateFromSupabase() {
       const fallbackSelect =
         "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,operator_name,checked_at,items(name,unit,price,image_url,item_categories(name))&order=created_at.desc&limit=1000";
       checklistRows = (await supabaseFetch(fallbackSelect)).map(normalizeChecklistRow).filter(isCurrentTenant);
-      applyPendingOrdersToItems();
-      renderProducts();
-      renderDetail();
       renderChecklist();
       refreshIcons();
     } catch (fallbackError) {
@@ -869,7 +856,7 @@ async function submitOrderModal(form) {
       log_type: "ORDER",
       order_check_id: orderRow?.id || null,
       order_quantity: Number(orderPayload.quantity || 0),
-      quantity_change: 0,
+      quantity_change: -Math.abs(Number(orderPayload.quantity || 0)),
       operator_name: currentOperatorName(),
       note: orderPayload.note || "Order request",
     });
@@ -926,7 +913,10 @@ async function submitStockModal(form) {
 function rowActions(item) {
   return `
     <div class="row-actions">
-      <span class="qty stock-label">Stock ${Number(item?.stock || 0)}</span>
+      <span class="qty stock-stack">
+        <strong>${Number(item?.stock || 0)}</strong>
+        <span>in stock</span>
+      </span>
       <button class="action-mini plus" type="button" aria-label="Nhập kho" title="Nhập kho">${actionIcons.plus}</button>
       <button class="action-mini minus" type="button" aria-label="Xuất kho" title="Xuất kho">${actionIcons.minus}</button>
       <button class="action-mini confirm cart" type="button" aria-label="Gửi vào Checklist" title="Gửi vào Checklist">${actionIcons.cart}</button>
@@ -946,12 +936,11 @@ function renderProducts() {
     ? visibleItems
     .map(
       (item) => `
-        <div class="product-row ${item.index === selectedIndex ? "selected" : ""} ${item.orderQty ? "has-pending-order" : ""}" role="button" tabindex="0" data-index="${item.index}">
+        <div class="product-row ${item.index === selectedIndex ? "selected" : ""}" role="button" tabindex="0" data-index="${item.index}">
           <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" ${thumbFallback} />
           <span class="product-main">
             <span class="product-name">${item.name} · $${item.price}</span>
             <span class="product-unit">${item.unit}</span>
-            ${item.orderQty ? `<span class="product-order-badge">Order ${Number(item.orderQty)} pending</span>` : ""}
           </span>
           ${rowActions(item)}
         </div>
@@ -986,7 +975,6 @@ function renderDetail() {
           <div class="field"><span>Name</span><strong>${item.name}</strong></div>
           <div class="field"><span>Category</span><strong><span class="dot"></span> Fruits</strong></div>
           <div class="field"><span>Unit</span><strong>${item.unit.replace("48/", "")}</strong></div>
-          ${item.orderQty ? `<div class="field"><span>Pending Order</span><strong>${Number(item.orderQty)}</strong></div>` : ""}
           <div class="field"><span>Price</span><strong>$${item.price},00</strong></div>
           <div class="field"><span>Barcode_1</span><strong>${item.barcode}</strong></div>
         </div>
@@ -1449,7 +1437,10 @@ function renderChecklist() {
                     </span>
                   </span>
                   <div class="row-actions">
-                    <span class="qty stock-label">Stock ${Number(row.stock || 0)}</span>
+                    <span class="qty stock-stack">
+                      <strong>${Number(row.stock || 0)}</strong>
+                      <span>in stock</span>
+                    </span>
                     <button class="action-mini plus checklist-action" type="button" data-check-action="in" aria-label="Nhập kho">${actionIcons.plus}</button>
                     <button class="action-mini minus checklist-action" type="button" data-check-action="out" aria-label="Xuất kho">${actionIcons.minus}</button>
                     <button class="action-mini check checklist-action ${row.status === "done" ? "is-checked" : ""}" type="button" data-check-action="done" aria-label="Done">${actionIcons.check}</button>
