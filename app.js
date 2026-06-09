@@ -784,7 +784,8 @@ function openOrderModal(item, button) {
     : "";
 
   modalShell({
-    title: item.name,
+    title: `${item.name} - Send to Checklist`,
+    saveLabel: "Send to Checklist",
     body: `
       <label class="form-field">
         <span>ItemID</span>
@@ -811,7 +812,8 @@ function openStockModal(item, button, movementType = "IN") {
   const defaultQuantity = Math.max(0, Number(item.defaultQuantity || 0));
   activeModal = { type: "stock", item, button, movementType };
   modalShell({
-    title: item.name,
+    title: `${item.name} - ${isIn ? "Stock In" : "Stock Out"}`,
+    saveLabel: isIn ? "Add to Warehouse" : "Remove from Warehouse",
     body: `
       <label class="form-field">
         <span>ItemID</span>
@@ -925,9 +927,9 @@ function rowActions(item) {
   return `
     <div class="row-actions">
       <span class="qty">${Number(item?.stock || 0)}</span>
-      <button class="action-mini plus" type="button" aria-label="Cộng">${actionIcons.plus}</button>
-      <button class="action-mini minus" type="button" aria-label="Trừ">${actionIcons.minus}</button>
-      <button class="action-mini confirm cart" type="button" aria-label="Mua hàng">${actionIcons.cart}</button>
+      <button class="action-mini plus" type="button" aria-label="Nhập kho" title="Nhập kho">${actionIcons.plus}</button>
+      <button class="action-mini minus" type="button" aria-label="Xuất kho" title="Xuất kho">${actionIcons.minus}</button>
+      <button class="action-mini confirm cart" type="button" aria-label="Gửi vào Checklist" title="Gửi vào Checklist">${actionIcons.cart}</button>
     </div>
   `;
 }
