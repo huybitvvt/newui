@@ -4181,3 +4181,63 @@ h1 {
     grid-template-columns: 42px minmax(0, 1fr) 86px;
   }
 }
+
+/* Modal scroll hardening: every action sheet must be writable on short screens. */
+.modal-backdrop {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.modal-panel {
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.modal-head {
+  min-height: 62px;
+}
+
+.modal-body {
+  min-height: 0;
+  max-height: calc(100dvh - 62px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scrollbar-gutter: stable;
+}
+
+.modal-item-image {
+  max-height: min(240px, 32dvh);
+}
+
+.modal-body .form-field:last-child {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .modal-item-image {
+    max-height: min(220px, 30dvh);
+  }
+}
+
+@media (max-width: 560px) {
+  .modal-backdrop {
+    align-items: end;
+    overflow: hidden;
+  }
+
+  .modal-panel {
+    height: min(92dvh, 760px);
+    max-height: 92dvh;
+  }
+
+  .modal-body {
+    max-height: calc(92dvh - 62px);
+    padding-bottom: calc(36px + env(safe-area-inset-bottom));
+  }
+
+  .modal-item-image {
+    max-height: min(180px, 24dvh);
+  }
+}
