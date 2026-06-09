@@ -910,6 +910,14 @@ async function submitStockModal(form) {
   }
 }
 
+function itemInitial(item) {
+  return String(item?.name || "?").trim().charAt(0).toUpperCase() || "?";
+}
+
+function letterThumb(item, extraClass = "") {
+  return `<span class="thumb thumb-letter ${extraClass}">${itemInitial(item)}</span>`;
+}
+
 function rowActions(item) {
   return `
     <div class="row-actions">
@@ -937,7 +945,7 @@ function renderProducts() {
     .map(
       (item) => `
         <div class="product-row ${item.index === selectedIndex ? "selected" : ""}" role="button" tabindex="0" data-index="${item.index}">
-          <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" ${thumbFallback} />
+          ${letterThumb(item)}
           <span class="product-main">
             <span class="product-name">${item.name} · $${item.price}</span>
             <span class="product-unit">${item.unit}</span>
@@ -961,6 +969,19 @@ function renderDetail() {
       </div>
     </div>
     <div class="detail-grid">
+      <div class="item-hero">
+        ${letterThumb(item, "hero-thumb")}
+        <div>
+          <div class="item-hero-name">${item.name}</div>
+          <div class="item-hero-meta">
+            <span>$${Number(item.price || 0).toFixed(2)}</span>
+            <span>·</span>
+            <span>${item.unit.replace("48/", "")}</span>
+            <span>·</span>
+            <strong>${Number(item.stock || 0)} in stock</strong>
+          </div>
+        </div>
+      </div>
       <div class="quick-card">
         <button class="quick-action" type="button"><i data-lucide="pencil"></i><span>Edit</span></button>
         <button class="quick-action danger" type="button"><i data-lucide="minus"></i><span>Stock Out</span></button>
@@ -991,7 +1012,7 @@ function renderDetail() {
             <div class="stock-group">
               <div class="stock-date">${entry.date} <span class="count">1</span></div>
               <div class="stock-entry">
-                <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" ${thumbFallback} />
+                ${letterThumb(item)}
                 <span>
                   <span class="entry-title">${item.name}</span>
                   <span class="entry-user">${entry.user}</span>
@@ -1426,7 +1447,7 @@ function renderChecklist() {
             .map(
               (row) => `
                 <div class="product-row checklist-row ${row.status === "done" ? "done" : ""}" data-check-index="${row.index}">
-                  <img class="thumb" src="${row.img}" alt="${row.name}" loading="lazy" ${thumbFallback} />
+                  ${letterThumb(row)}
                   <span class="product-main">
                     <span class="product-name">${row.name}${row.price ? ` · $${row.price}` : ""}</span>
                     <span class="product-unit">${row.unit || "ORDER"}</span>

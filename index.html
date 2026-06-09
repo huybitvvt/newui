@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://images.unsplash.com" />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=inventory-ui-geist-91b3c4" />
+    <link rel="stylesheet" href="styles.css?v=giao-dien-layout-v2-4c18af" />
   </head>
   <body>
     <div class="app-shell">
@@ -32,6 +32,9 @@
       </header>
 
       <aside class="rail" aria-label="Primary navigation">
+        <div class="rail-logo" aria-hidden="true">
+          <i data-lucide="package"></i>
+        </div>
         <button class="rail-button active" type="button" data-view="home" aria-label="Home">
           <i data-lucide="home"></i>
         </button>
@@ -76,7 +79,7 @@
             <div class="toolbar">
               <button class="primary-button" type="button" data-stock-in-selected>
                 <i data-lucide="plus"></i>
-                <span>Add</span>
+                <span>Add item</span>
               </button>
               <button class="icon-button" type="button" aria-label="Filter">
                 <i data-lucide="list-filter"></i>
@@ -114,7 +117,7 @@
             <div class="toolbar">
               <button class="primary-button" type="button" data-view="items">
                 <i data-lucide="plus"></i>
-                <span>Add</span>
+                <span>Add item</span>
               </button>
               <button class="icon-button" type="button" aria-label="Filter">
                 <i data-lucide="list-filter"></i>
@@ -184,7 +187,7 @@
             <div class="toolbar">
               <button class="primary-button" type="button">
                 <i data-lucide="plus"></i>
-                <span>Add</span>
+                <span>Add item</span>
               </button>
               <button class="icon-button" type="button" aria-label="Filter">
                 <i data-lucide="list-filter"></i>
@@ -211,6 +214,6 @@
     <div id="modalRoot"></div>
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    <script src="app.js?v=inventory-ui-geist-91b3c4"></script>
+    <script src="app.js?v=giao-dien-layout-v2-4c18af"></script>
   </body>
 </html>
