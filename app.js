@@ -346,10 +346,43 @@ function buildInventoryMap(historyRows) {
   }, {});
 }
 
+function checklistItemKey(row) {
+  if (uuidPattern.test(row?.itemId || row?.item_id || "")) {
+    return row.itemId || row.item_id;
+  }
+
+  return String(row?.name || row?.item_name || "").trim().toLowerCase();
+}
+
+function buildPendingOrderMap(rows) {
+  return rows.reduce((totals, row) => {
+    if (row.status === "done") {
+      return totals;
+    }
+
+    const key = checklistItemKey(row);
+    const quantity = Number(row.quantity || 0);
+    if (!key || !quantity) {
+      return totals;
+    }
+
+    totals[key] = (totals[key] || 0) + quantity;
+    return totals;
+  }, {});
+}
+
 function applyInventoryToItems() {
   items = items.map((item) => ({
     ...item,
     stock: inventoryByItemKey[itemInventoryKey(item)] || 0,
+  }));
+}
+
+function applyPendingOrdersToItems() {
+  const pendingOrderByItemKey = buildPendingOrderMap(checklistRows);
+  items = items.map((item) => ({
+    ...item,
+    orderQty: pendingOrderByItemKey[itemInventoryKey(item)] || 0,
   }));
 }
 
@@ -502,6 +535,7 @@ async function hydrateFromSupabase() {
     if (itemRows.length) {
       items = itemRows.map(normalizeItemRow).filter(isCurrentTenant);
       applyInventoryToItems();
+      applyPendingOrdersToItems();
       selectedIndex = 0;
       renderProducts();
       renderDetail();
@@ -519,6 +553,7 @@ async function hydrateFromSupabase() {
     const scopedHistoryRows = historyRows.filter(isCurrentTenant);
     inventoryByItemKey = buildInventoryMap(scopedHistoryRows);
     applyInventoryToItems();
+    applyPendingOrdersToItems();
 
     const normalized = scopedHistoryRows.slice(0, 60).map(normalizeWarehouseRow);
     warehouseIn = normalized.filter((row) => row.qty >= 0);
@@ -550,6 +585,9 @@ async function hydrateFromSupabase() {
       "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,status,operator_name,checked_at,done_by_name,done_at,items(name,unit,price,image_url,item_categories(name))&order=created_at.desc&limit=1000",
     );
     checklistRows = checklistRowsRaw.map(normalizeChecklistRow).filter(isCurrentTenant);
+    applyPendingOrdersToItems();
+    renderProducts();
+    renderDetail();
     renderChecklist();
     refreshIcons();
   } catch (error) {
@@ -558,6 +596,9 @@ async function hydrateFromSupabase() {
       const fallbackSelect =
         "check?select=id,item_id,item_name,item_image_url,quantity,note,check_type,operator_name,checked_at,items(name,unit,price,image_url,item_categories(name))&order=created_at.desc&limit=1000";
       checklistRows = (await supabaseFetch(fallbackSelect)).map(normalizeChecklistRow).filter(isCurrentTenant);
+      applyPendingOrdersToItems();
+      renderProducts();
+      renderDetail();
       renderChecklist();
       refreshIcons();
     } catch (fallbackError) {
@@ -903,11 +944,12 @@ function renderProducts() {
     ? visibleItems
     .map(
       (item) => `
-        <div class="product-row ${item.index === selectedIndex ? "selected" : ""}" role="button" tabindex="0" data-index="${item.index}">
+        <div class="product-row ${item.index === selectedIndex ? "selected" : ""} ${item.orderQty ? "has-pending-order" : ""}" role="button" tabindex="0" data-index="${item.index}">
           <img class="thumb" src="${item.img}" alt="${item.name}" loading="lazy" ${thumbFallback} />
           <span class="product-main">
             <span class="product-name">${item.name} · $${item.price}</span>
             <span class="product-unit">${item.unit}</span>
+            ${item.orderQty ? `<span class="product-order-badge">Order ${Number(item.orderQty)} pending</span>` : ""}
           </span>
           ${rowActions(item)}
         </div>
@@ -942,6 +984,7 @@ function renderDetail() {
           <div class="field"><span>Name</span><strong>${item.name}</strong></div>
           <div class="field"><span>Category</span><strong><span class="dot"></span> Fruits</strong></div>
           <div class="field"><span>Unit</span><strong>${item.unit.replace("48/", "")}</strong></div>
+          ${item.orderQty ? `<div class="field"><span>Pending Order</span><strong>${Number(item.orderQty)}</strong></div>` : ""}
           <div class="field"><span>Price</span><strong>$${item.price},00</strong></div>
           <div class="field"><span>Barcode_1</span><strong>${item.barcode}</strong></div>
         </div>
