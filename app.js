@@ -926,7 +926,7 @@ async function submitStockModal(form) {
 function rowActions(item) {
   return `
     <div class="row-actions">
-      <span class="qty">${Number(item?.stock || 0)}</span>
+      <span class="qty stock-label">Stock ${Number(item?.stock || 0)}</span>
       <button class="action-mini plus" type="button" aria-label="Nhập kho" title="Nhập kho">${actionIcons.plus}</button>
       <button class="action-mini minus" type="button" aria-label="Xuất kho" title="Xuất kho">${actionIcons.minus}</button>
       <button class="action-mini confirm cart" type="button" aria-label="Gửi vào Checklist" title="Gửi vào Checklist">${actionIcons.cart}</button>
@@ -1449,7 +1449,7 @@ function renderChecklist() {
                     </span>
                   </span>
                   <div class="row-actions">
-                    <span class="qty">${Number(row.stock || 0)}</span>
+                    <span class="qty stock-label">Stock ${Number(row.stock || 0)}</span>
                     <button class="action-mini plus checklist-action" type="button" data-check-action="in" aria-label="Nhập kho">${actionIcons.plus}</button>
                     <button class="action-mini minus checklist-action" type="button" data-check-action="out" aria-label="Xuất kho">${actionIcons.minus}</button>
                     <button class="action-mini check checklist-action ${row.status === "done" ? "is-checked" : ""}" type="button" data-check-action="done" aria-label="Done">${actionIcons.check}</button>
