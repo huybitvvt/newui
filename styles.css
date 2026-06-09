@@ -631,6 +631,11 @@ h1 {
   font-size: 13px;
 }
 
+.qty.stock-label {
+  font-style: normal;
+  white-space: nowrap;
+}
+
 .action-mini {
   width: 32px;
   height: 32px;
@@ -2989,6 +2994,10 @@ i[data-lucide] {
   .qty {
     font-size: 11px;
     line-height: 1;
+  }
+
+  .qty.stock-label {
+    font-size: 10px;
   }
 
   .action-mini {
